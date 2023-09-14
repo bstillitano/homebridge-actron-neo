@@ -25,7 +25,15 @@
     "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "actron",
+    "neo",
+    "actron neo",
+    "actron-neo",
+    "actron air",
+    "actronair",
+    "actron connect",
+    "actron-connect"
   ],
   "dependencies": {
     "jtd": "^0.1.1",
