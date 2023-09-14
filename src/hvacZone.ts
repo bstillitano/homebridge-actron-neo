@@ -107,7 +107,8 @@ export class HvacZone {
       this.currentHeatingSetTemp=heatTemp;
     } else if (response === CommandResult.FAILURE) {
       await this.getZoneStatus();
-      this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API`);
+      this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API.`);
+      this.log.error(' Does your system support zone based temperature control?');
     } else {
       this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }

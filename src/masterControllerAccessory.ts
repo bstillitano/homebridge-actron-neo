@@ -211,10 +211,6 @@ export class MasterControllerAccessory {
 
   async setHeatingThresholdTemperature(value: CharacteristicValue) {
     this.checkHvacComms();
-    if (this.platform.hvacInstance.controlAllZones === false &&
-      this.platform.hvacInstance.zonesFollowMaster === true) {
-      await this.platform.hvacInstance.setControlAllZonesOn();
-    }
     await this.platform.hvacInstance.setHeatTemp(value as number);
     await this.platform.hvacInstance.getStatus();
     this.platform.log.debug('Set Master Target Heating Temperature -> ', value);
@@ -228,10 +224,6 @@ export class MasterControllerAccessory {
 
   async setCoolingThresholdTemperature(value: CharacteristicValue) {
     this.checkHvacComms();
-    if (this.platform.hvacInstance.controlAllZones === false &&
-      this.platform.hvacInstance.zonesFollowMaster === true) {
-      await this.platform.hvacInstance.setControlAllZonesOn();
-    }
     await this.platform.hvacInstance.setCoolTemp(value as number);
     await this.platform.hvacInstance.getStatus();
     this.platform.log.debug('Set Master Target Cooling Temperature -> ', value);
