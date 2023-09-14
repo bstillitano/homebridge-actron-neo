@@ -148,7 +148,6 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           displayName: zone.zoneName,
           instance: zone,
         });
-        this.log.warn('Finished puhsing zone:', JSON.stringify(zone));
       }
       this.log.debug('Discovered Devices \n', devices);
       // loop over the discovered devices and register each one if it has not already been registered
