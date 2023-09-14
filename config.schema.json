@@ -60,7 +60,7 @@
       },
       "adjustThresholds": {
       "title": " Modify default heating cooling threshold temperatures",
-      "description": "Cooling default min/max = 20/32. Heating default min/max = 10/26",
+      "description": "Cooling default min/max = 10/24. Heating default min/max = 16/30",
       "type": "boolean"
       },
       "maxCoolingTemp": {
@@ -68,7 +68,7 @@
         "description": "Maximum temp setting for cooling in degrees celsius",
         "type": "integer",
         "required": false,
-        "default": 32,
+        "default": 24,
         "condition": {
           "functionBody": "return model.adjustThresholds === true;"
         }
@@ -78,7 +78,7 @@
         "description": "Minimum temp setting for cooling in degrees celsius",
         "type": "integer",
         "required": false,
-        "default": 20,
+        "default": 10,
         "condition": {
           "functionBody": "return model.adjustThresholds === true;"
         }
@@ -88,7 +88,7 @@
         "description": "Maximum temp setting for heating in degrees celsius",
         "type": "integer",
         "required": false,
-        "default": 26,
+        "default": 30,
         "condition": {
           "functionBody": "return model.adjustThresholds === true;"
         }
@@ -98,7 +98,7 @@
         "description": "Minimum temp setting for heating in degrees celsius",
         "type": "integer",
         "required": false,
-        "default": 10,
+        "default": 16,
         "condition": {
           "functionBody": "return model.adjustThresholds === true;"
         }
