@@ -26,8 +26,7 @@ export class OutdoorUnitAccessory {
     this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getCurrentTemperature.bind(this));
 
-    setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
-
+    // setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
   }
 
   // SET's are async as these need to wait on API response then cache the return value on the hvac Class instance
