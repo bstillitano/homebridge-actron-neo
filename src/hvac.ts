@@ -33,7 +33,8 @@ export class HvacUnit {
     private readonly log: Logger,
     private readonly hbUserStoragePath: string,
     readonly zonesFollowMaster = true,
-    readonly zonesPushMaster = true) {
+    readonly zonesPushMaster = true,
+    readonly zonesAsHeaterCoolers = false) {
     this.name = name;
   }
 

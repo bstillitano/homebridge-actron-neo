@@ -23,20 +23,25 @@ export class ZoneControllerAccessory {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.zone.sensorId);
 
     // Get or create the heater cooler service.
-    this.hvacService = this.accessory.getService(this.platform.Service.HeaterCooler)
-    || this.accessory.addService(this.platform.Service.HeaterCooler);
+    if (this.platform.zonesAsHeaterCoolers) {
+      this.hvacService = this.accessory.getService(this.platform.Service.HeaterCooler)
+        || this.accessory.addService(this.platform.Service.HeaterCooler);
+    } else {
+      this.hvacService = this.accessory.getService(this.platform.Service.Lightbulb)
+      || this.accessory.addService(this.platform.Service.Lightbulb);
+    }
 
     // Set accessory display name, this is taken from discover devices in platform
     this.hvacService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     // Get or create the humidity sensor service.
     this.batteryService = this.accessory.getService(this.platform.Service.Battery)
-    || this.accessory.addService(this.platform.Service.Battery);
+      || this.accessory.addService(this.platform.Service.Battery);
 
     // Get or create the humidity sensor service if the zone sensor supports humidity readings
     if (this.zone.zoneHumiditySensor) {
       this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
-          || this.accessory.addService(this.platform.Service.HumiditySensor);
+        || this.accessory.addService(this.platform.Service.HumiditySensor);
       // get humidity
       this.humidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .onGet(this.getHumidity.bind(this));
