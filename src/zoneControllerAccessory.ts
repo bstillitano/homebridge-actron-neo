@@ -3,10 +3,8 @@ import { ClimateMode, CompressorMode } from './types';
 import { ActronQuePlatform } from './platform';
 import { HvacZone } from './hvacZone';
 
-// This class represents the zone controller
 export class ZoneControllerAccessory {
   private hvacService: Service;
-  // some versions of the zone sensor do not support humidity
   private humidityService: Service | null;
   private batteryService: Service;
 
@@ -15,49 +13,39 @@ export class ZoneControllerAccessory {
     private readonly accessory: PlatformAccessory,
     private readonly zone: HvacZone,
   ) {
-
-    // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
       .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Zone Controller')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.zone.sensorId);
 
-    // Get or create the heater cooler service.
     if (this.platform.zonesAsHeaterCoolers) {
       this.hvacService = this.accessory.getService(this.platform.Service.HeaterCooler)
         || this.accessory.addService(this.platform.Service.HeaterCooler);
     } else {
       this.hvacService = this.accessory.getService(this.platform.Service.Lightbulb)
-      || this.accessory.addService(this.platform.Service.Lightbulb);
+        || this.accessory.addService(this.platform.Service.Lightbulb);
     }
 
-    // Set accessory display name, this is taken from discover devices in platform
     this.hvacService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
-    // Get or create the humidity sensor service.
     this.batteryService = this.accessory.getService(this.platform.Service.Battery)
       || this.accessory.addService(this.platform.Service.Battery);
 
-    // Get or create the humidity sensor service if the zone sensor supports humidity readings
     if (this.zone.zoneHumiditySensor) {
       this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
         || this.accessory.addService(this.platform.Service.HumiditySensor);
-      // get humidity
       this.humidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .onGet(this.getHumidity.bind(this));
     } else {
       this.humidityService = null;
     }
 
-    // get battery low
     this.batteryService.getCharacteristic(this.platform.Characteristic.StatusLowBattery)
       .onGet(this.getBatteryStatus.bind(this));
 
-    // get battery level
     this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
       .onGet(this.getBatteryLevel.bind(this));
 
-    // register handlers for device control, references the class methods that follow for Set and Get
     this.hvacService.getCharacteristic(this.platform.Characteristic.Active)
       .onSet(this.setEnableState.bind(this))
       .onGet(this.getEnableState.bind(this));
@@ -72,7 +60,6 @@ export class ZoneControllerAccessory {
     this.hvacService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getCurrentTemperature.bind(this));
 
-    // The min/max values here are based on the hardcoded data taken from my unit
     this.hvacService.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
       .setProps({
         minValue: this.platform.minHeatingTemp,
@@ -82,7 +69,6 @@ export class ZoneControllerAccessory {
       .onGet(this.getHeatingThresholdTemperature.bind(this))
       .onSet(this.setHeatingThresholdTemperature.bind(this));
 
-    // The min/max values here are based on the hardcoded data taken from my unit
     this.hvacService.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
       .setProps({
         minValue: this.platform.minCoolingTemp,
@@ -93,12 +79,8 @@ export class ZoneControllerAccessory {
       .onSet(this.setCoolingThresholdTemperature.bind(this));
 
     setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
-
   }
 
-  // SET's are async as these need to wait on API response then cache the return value on the hvac Class instance
-  // GET's run non async as this is a quick retrieval from the hvac class instance cache
-  // UPDATE is run Async as this polls the API first to confirm current cache state is accurate
   async softUpdateDeviceCharacteristics() {
     this.hvacService.updateCharacteristic(this.platform.Characteristic.Active, this.getEnableState());
     this.hvacService.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentCompressorMode());
@@ -123,20 +105,17 @@ export class ZoneControllerAccessory {
 
   getHumidity(): CharacteristicValue {
     const currentHumidity = this.zone.currentHumidity;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Humidity -> `, currentHumidity);
     return currentHumidity;
   }
 
   getBatteryStatus(): CharacteristicValue {
     const currentBattery = this.zone.zoneSensorBattery;
     const batteryState = (currentBattery < 10) ? 1 : 0;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Battery Status -> `, batteryState);
     return batteryState;
   }
 
   getBatteryLevel(): CharacteristicValue {
     const currentBattery = this.zone.zoneSensorBattery;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Battery Level -> `, currentBattery);
     return currentBattery;
   }
 
@@ -155,7 +134,6 @@ export class ZoneControllerAccessory {
 
   getEnableState(): CharacteristicValue {
     const enableState = (this.zone.zoneEnabled === true) ? 1 : 0;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Enable State -> `, enableState);
     return enableState;
   }
 
@@ -176,11 +154,9 @@ export class ZoneControllerAccessory {
         currentMode = 0;
         this.platform.log.debug('Failed To Get a Valid Compressor Mode -> ', compressorMode);
     }
-    // if the fan is not running then update state to idle
     if (!this.platform.hvacInstance.fanRunning) {
       currentMode = 1;
     }
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} current compressor mode -> `, compressorMode);
     return currentMode;
   }
 
@@ -217,14 +193,13 @@ export class ZoneControllerAccessory {
         currentMode = 0;
         this.platform.log.debug('Failed To Get Target Climate Mode -> ', climateMode);
     }
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Target Climate Mode -> `, climateMode);
     return currentMode;
   }
 
   getCurrentTemperature(): CharacteristicValue {
     const currentTemp = this.zone.currentTemp;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Current Temperature -> `, currentTemp);
-    return currentTemp;
+    // Convert the temperature to the correct scale (assuming it's in Celsius * 100)
+    return Math.min(Math.max(currentTemp / 100, 0), 100);
   }
 
   async setHeatingThresholdTemperature(value: CharacteristicValue) {
@@ -250,7 +225,6 @@ export class ZoneControllerAccessory {
 
   getHeatingThresholdTemperature(): CharacteristicValue {
     const targetTemp = this.zone.currentHeatingSetTemp;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Target Heating Temperature -> `, targetTemp);
     return targetTemp;
   }
 
@@ -282,7 +256,6 @@ export class ZoneControllerAccessory {
 
   getCoolingThresholdTemperature(): CharacteristicValue {
     const targetTemp = this.zone.currentCoolingSetTemp;
-    // this.platform.log.debug(`Got Zone ${this.zone.zoneName} Target Cooling Temperature -> `, targetTemp);
     return targetTemp;
   }
 }
