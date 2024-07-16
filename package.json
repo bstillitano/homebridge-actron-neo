@@ -1,16 +1,16 @@
 {
   "private": false,
-  "displayName": "Homebridge Actron Neo",
-  "name": "homebridge-actron-neo",
-  "version": "0.0.25",
-  "description": "Homebridge plugin for controlling Actron Neo controller systems",
+  "displayName": "Homebridge Actron Air Neo",
+  "name": "homebridge-actronair-neo",
+  "version": "0.0.26",
+  "description": "Homebridge plugin for controlling Actron Air Neo controller systems",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/bstillitano/homebridge-actron-neo.git"
+    "url": "git://github.com/domalab/homebridge-actron-neo.git"
   },
   "bugs": {
-    "url": "https://github.com/bstillitano/homebridge-actron-neo/issues"
+    "url": "https://github.com/domalab/homebridge-actron-neo/issues"
   },
   "engines": {
     "node": ">=14.18.1",
@@ -52,6 +52,6 @@
     "typescript": "^4.7.4"
   },
   "types": "./dist/index.d.ts",
-  "homepage": "https://github.com/bstillitano/homebridge-actron-neo#readme",
-  "author": "bstillitano"
+  "homepage": "https://github.com/domalab/homebridge-actron-neo#readme",
+  "author": "domalab"
 }

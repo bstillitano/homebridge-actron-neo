@@ -1,11 +1,11 @@
 import { API } from 'homebridge';
 
 import { PLATFORM_NAME } from './settings';
-import { ActronQuePlatform } from './platform';
+import { ActronAirNeoPlatform } from './platform';
 
 /**
  * This method registers the platform with Homebridge
  */
 export = (api: API) => {
-  api.registerPlatform(PLATFORM_NAME, ActronQuePlatform);
+  api.registerPlatform(PLATFORM_NAME, ActronAirNeoPlatform);
 };

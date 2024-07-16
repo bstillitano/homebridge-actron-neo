@@ -1,15 +1,6 @@
-# homebridge-actron-neo
+# homebridge-actronair-neo
 
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) 
-
-[![npm](https://img.shields.io/npm/v/homebridge-actron-neo/latest?label=latest)](https://www.npmjs.com/package/homebridge-actron-neo)
-[![GitHub release](https://img.shields.io/github/release/bstillitano/homebridge-actron-neosvg)](https://github.com/bstillitano/homebridge-actron-neo/releases)
-[![npm](https://img.shields.io/npm/dt/homebridge-actron-neo)](https://www.npmjs.com/package/homebridge-actron-neo)
-
-[![Tag, Release & Publish](https://github.com/bstillitano/homebridge-actron-neo/actions/workflows/push.yml/badge.svg)](https://github.com/bstillitano/homebridge-actron-neo/actions/workflows/push.yml)
- [![Hex.pm](https://img.shields.io/hexpm/l/plug)](https://www.apache.org/licenses/LICENSE-2.0)
-
-Use this plugin to control your Actron Neo system with Apple HomeKit using Homebridge.
+Use this plugin to control your ActronAir Neo system with Apple HomeKit using Homebridge.
 
 ## Current Status
 ---
@@ -25,21 +16,21 @@ This is an 'almost' feature complete implementation of the Neo platform in HomeK
 
 ## Controlling Zone Temperature Settings
 ---
-When modifying the zone temperature settings, the Neo system only allows you to set a temperature that is within -2 degrees (Heating) or +2 degrees (Cooling) of the Master Control temperature. With version 1.1.0 I have modified the default behaviour to automatically adjust the master temp if required when modifying a zone temp.
+When modifying the zone temperature settings, the Neo system only allows you to set a temperature that is within -2 degrees (Heating) or +2 degrees (Cooling) of the Master Control temperature. I have modified the default behaviour to automatically adjust the master temp if required when modifying a zone temp.
 Setting `zonesPushMaster` to false will revert to the prior behaviour of constraining zones to the allowable max/min based on the current master setting. If you set a zone temperature that is outside of the +/- 2 degree range from the master the plugin will translate the set temp to the allowable range.
 
 
 ## Installation
 ---
 ### GUI Install
-1. Search for "Actron Neo" on the plugin screen of Homebridge Config UI X
-2. Find: homebridge-actron-neo
+1. Search for "ActronAir Neo" on the plugin screen of Homebridge Config UI X
+2. Find: homebridge-actronair-neo
 3. Click Install
 4. Enter your account details in the settings screen displayed
 
 ### CLI Install
 ```
-npm install -g homebridge-actron-neo
+npm install -g homebridge-actronair-neo
 ```
 Configure account details in the homebridge `config.json` file a below.
 ## Configuration
@@ -51,8 +42,8 @@ If you are not using the Homebridge config UI you can add the following to your 
 ```
     "platforms": [
         {
-            "platform": "ActronNeo",
-            "name": "ActronNeo",
+            "platform": "ActronAirNeo",
+            "name": "ActronAirNeo",
             "username": "<your_username>",
             "password": "<your_password>",
             "clientName": "homebridgeNeo",
@@ -70,33 +61,33 @@ If you are not using the Homebridge config UI you can add the following to your 
 #### `platform`
 type: string
 
-default: "ActronNeo"
+default: "ActronAirNeo"
 
 This is the name of the platform plugin you are configuring. This should always be set to the default value.
 
 #### `name`
 type: string
 
-default: "ActronNeo"
+default: "ActronAirNeo"
 
-This is the name used for the instance of the plugin you are running. The default of "ActronNeo" can be used in most cases
+This is the name used for the instance of the plugin you are running. The default of "ActronAirNeo" can be used in most cases
 
 #### `username`
 type: string
 
-The username you use to login to the Actron Neo app on your phone, or at nimbus.actronair.com.au
+The username you use to login to the ActronAir Neo app on your phone, or at nimbus.actronair.com.au
 
 default: 60
 #### `password`
 type: string
 
-The password you use to login to the Actron Neo app on your phone, or at nimbus.actronair.com.au
+The password you use to login to the ActronAir Neo app on your phone, or at nimbus.actronair.com.au
 
 default: 60
 #### `clientName`
 type: string
 
-default: "homebridge-actron-neo"
+default: "homebridge-actronair-neo"
 
 The value you set for client name will be used in two places:
 1. It will set this as the default accessory name for the master controller when pairing the accessory in HomeKit.
@@ -204,9 +195,9 @@ The error will also let you know that a restart may help if you recently revoked
 ---
 During development of the plugin I noticed that the Neo API occasionally fails to service a request from its backend and responds with a 504 (i think this is what causes the Neo iPhone app to be particularity awful to use). Waiting a second or two and retrying seems to reliably allow you to move past the error and carry on. I also noted that on occasion the Neo service will misbehave and return a range of 5xx errors (primarily 504 and 503). For this reason the plugin will retry three times on a 5xx status with a wait time of three seconds between retries. If the maximum number of retires is exceeded you will see the following Info message logged to the Homebridge log file.
 
-`Maximum retries exceeded -> Actron Neo API returned a server side error: http status code = 5xx`
+`Maximum retries exceeded -> ActronAir Neo API returned a server side error: http status code = 5xx`
 
-Generally these errors will resolve after time and things will keep on running. From version 1.1.0 this error handling was improved to prevent the plugin terminating and allow for a graceful recovery once the Neo API starts responding normally again.
+Generally these errors will resolve after time and things will keep on running. This error handling was improved to prevent the plugin terminating and allow for a graceful recovery once the Neo API starts responding normally again.
 
 #### All other non-200
 ---
@@ -216,12 +207,12 @@ All other errors will fall through to a default handler that will return the fol
 `If you recently revoked access for clients on the Neo portal, a restart may resolve the issue`
 
 ### Network Outages
-Beginning with version 1.1.0 the plugin will now gracefully recover from network outages. The network MUST be available on startup, but if there is an outage during operation you will see the following Info message in the log and the plugin will resume functioning once the network is restored. 
+The plugin will now gracefully recover from network outages. The network MUST be available on startup, but if there is an outage during operation you will see the following Info message in the log and the plugin will resume functioning once the network is restored. 
 
 `Cannot reach Neo cloud service, check your network connection <specific error condition>`
 
 ### Master Controller Offline
-Beginning with 1.2.3 the plugin will now detect if your master controller is disconnected from the network or otherwise unable to reach the QNeoue Cloud Service. You will be alerted to this via the following log message:
+The plugin will now detect if your master controller is disconnected from the network or otherwise unable to reach the QNeoue Cloud Service. You will be alerted to this via the following log message:
 
 `Master Controller is offline. Check Master Controller Internet/Wifi connection`
 
@@ -235,7 +226,7 @@ Beginning with version 1.2.3 the plugin will now gracefully recover when the API
 `API Returned Bad Data - Schema Validation Failed`
 
 ### State Refresh from Cache on Error
-If errors occur during the periodic state refresh interval (poll to Actron cloud to ensure Homebridge has up to date device data) then you may see one or both of the following warning messages appear in the event log. This is simply to make you aware that the Actron cloud service is returning bad or error data however cached info will be used for the state refresh to allow operation to continue gracefully. From experience I have observed that the Actron service will experience issues most days and may return bad data for up to 10mins before returning to reliable operation. I am working on a project to start logging the availability of their cloud service so i can provide information to their support team to hopefully resolve these on-going issues.
+If errors occur during the periodic state refresh interval (poll to ActronAir cloud to ensure Homebridge has up to date device data) then you may see one or both of the following warning messages appear in the event log. This is simply to make you aware that the ActronAir cloud service is returning bad or error data however cached info will be used for the state refresh to allow operation to continue gracefully. From experience I have observed that the ActronAir service will experience issues most days and may return bad data for up to 10mins before returning to reliable operation. I am working on a project to start logging the availability of their cloud service so i can provide information to their support team to hopefully resolve these on-going issues.
 
-`Failed to refresh status, Actron Neo Cloud unreachable or returned invalid data`  
-`Actron Neo cloud error, refreshing HomeKit accessory state using cached data`
+`Failed to refresh status, ActronAir Neo Cloud unreachable or returned invalid data`  
+`ActronAir Neo cloud error, refreshing HomeKit accessory state using cached data`

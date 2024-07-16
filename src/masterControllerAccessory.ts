@@ -1,17 +1,17 @@
 import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
 import { ClimateMode, CompressorMode, FanMode, PowerState } from './types';
-import { ActronQuePlatform } from './platform';
+import { ActronAirNeoPlatform } from './platform';
 
 export class MasterControllerAccessory {
   private hvacService: Service;
   private humidityService: Service;
 
   constructor(
-    private readonly platform: ActronQuePlatform,
+    private readonly platform: ActronAirNeoPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'ActronAir')
       .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Master Controller')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.platform.hvacInstance.serialNo);
 
@@ -70,7 +70,7 @@ export class MasterControllerAccessory {
     const currentStatus = await this.platform.hvacInstance.getStatus();
     this.softUpdateDeviceCharacteristics();
     if (currentStatus.apiError) {
-      this.platform.log.info('Actron Neo cloud error, refreshing HomeKit accessory state using cached data');
+      this.platform.log.info('Actron Air Neo cloud error, refreshing HomeKit accessory state using cached data');
     } else if (!currentStatus.cloudConnected) {
       this.platform.log.error('Master Controller is offline. Check Master Controller Internet/Wifi connection.\n' +
         'Refreshing HomeKit accessory state using cached data');

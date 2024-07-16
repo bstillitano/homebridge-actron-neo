@@ -1,4 +1,4 @@
-export const queApiCommands = {
+export const neoApiCommands = {
   ON: () => (
     {
       'command': {

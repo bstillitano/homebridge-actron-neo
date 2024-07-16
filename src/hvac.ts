@@ -1,4 +1,4 @@
-import QueApi from './queApi';
+import NeoApi from './neoApi';
 import { PowerState, FanMode, ClimateMode, CompressorMode, validApiCommands, ZoneStatus, HvacStatus, CommandResult } from './types';
 import { Logger } from 'homebridge';
 import { HvacZone } from './hvacZone';
@@ -8,7 +8,7 @@ export class HvacUnit {
   readonly name: string;
   type = '';
   serialNo = '';
-  apiInterface!: QueApi;
+  apiInterface!: NeoApi;
 
   cloudConnected = false;
   powerState: PowerState = PowerState.UNKNOWN;
@@ -38,9 +38,9 @@ export class HvacUnit {
     this.name = name;
   }
 
-  async actronQueApi(username: string, password: string, serialNo = '') {
-    this.type = 'actronNeo';
-    this.apiInterface = new QueApi(username, password, this.name, this.log, this.hbUserStoragePath, serialNo);
+  async actronairNeoApi(username: string, password: string, serialNo = '') {
+    this.type = 'actronairNeo';
+    this.apiInterface = new NeoApi(username, password, this.name, this.log, this.hbUserStoragePath, serialNo);
     await this.apiInterface.initializer();
     if (this.apiInterface.actronSerial) {
       this.serialNo = this.apiInterface.actronSerial;
@@ -54,7 +54,7 @@ export class HvacUnit {
     const status = await this.apiInterface.getStatus();
 
     if (status.apiError) {
-      this.log.warn('Failed to refresh status, Actron Neo Cloud unreachable or returned invalid data');
+      this.log.warn('Failed to refresh status, ActronAir Neo Cloud unreachable or returned invalid data');
       return status;
     }
 
@@ -104,7 +104,7 @@ export class HvacUnit {
         await this.getStatus();
         this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
       } else {
-        this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+        this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
       }
     }
     return this.powerState;
@@ -124,7 +124,7 @@ export class HvacUnit {
         await this.getStatus();
         this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
       } else {
-        this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+        this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
       }
     }
     return this.powerState;
@@ -139,7 +139,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.masterHeatingSetTemp;
   }
@@ -153,7 +153,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.masterCoolingSetTemp;
   }
@@ -168,7 +168,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return [this.masterCoolingSetTemp, this.masterHeatingSetTemp = heatTemp];
   }
@@ -181,7 +181,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.climateMode;
   }
@@ -194,7 +194,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.climateMode;
   }
@@ -207,7 +207,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.climateMode;
   }
@@ -220,7 +220,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.climateMode;
   }
@@ -233,7 +233,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.fanMode;
   }
@@ -246,7 +246,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.fanMode;
   }
@@ -259,7 +259,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.fanMode;
   }
@@ -272,7 +272,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.fanMode;
   }
@@ -285,7 +285,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.awayMode;
   }
@@ -298,7 +298,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.awayMode;
   }
@@ -311,7 +311,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.quietMode;
   }
@@ -324,7 +324,7 @@ export class HvacUnit {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
     } else {
-      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
     }
     return this.quietMode;
   }

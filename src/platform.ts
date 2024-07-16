@@ -8,12 +8,12 @@ import { HvacUnit } from './hvac';
 import { HvacZone } from './hvacZone';
 import { DiscoveredDevices } from './types';
 
-export class ActronQuePlatform implements DynamicPlatformPlugin {
+export class ActronAirNeoPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly accessories: PlatformAccessory[] = [];
 
-  // Attributes required for initialisation of ActronQue platform
+  // Attributes required for initialisation of ActronAirNeo platform
   private readonly clientName: string;
   private readonly username: string;
   private readonly password: string;
@@ -131,7 +131,7 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
       this.hvacInstance = new HvacUnit(this.clientName, this.log, this.api.user.storagePath(),
         this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers);
       let hvacSerial = '';
-      hvacSerial = await this.hvacInstance.actronQueApi(this.username, this.password, this.userProvidedSerialNo);
+      hvacSerial = await this.hvacInstance.actronairNeoApi(this.username, this.password, this.userProvidedSerialNo);
       // Make sure we have hvac master and zone data before adding devices
       await this.hvacInstance.getStatus();
       const devices: DiscoveredDevices[] = [

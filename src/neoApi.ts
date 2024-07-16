@@ -4,13 +4,13 @@ import { Logger } from 'homebridge';
 import { Schema, validate } from 'jtd';
 import { apiToken, tokenCollection, PowerState, validApiCommands, ZoneStatus, HvacStatus, CommandResult, ApiAccessError } from './types';
 import { AccessTokenSchema, BearerTokenSchema, SystemStatusSchema, AcSystemsSchema, CommandResponseSchema} from './schema';
-import { queApiCommands } from './queCommands';
+import { neoApiCommands } from './neoCommands';
 
-// Defines an api interface for the Que cloud service
-export default class QueApi {
+// Defines an api interface for the Neo cloud service
+export default class NeoApi {
 
   private readonly basePath: string = 'https://nimbus.actronair.com.au';
-  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actron-neo-persist';
+  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actronair-neo-persist';
   private readonly refreshTokenFile: string = this.persistentDataDir + '/access.token';
   private readonly bearerTokenFile: string = this.persistentDataDir + '/bearer.token';
   private readonly apiClientIdFile: string = this.persistentDataDir + '/clientid.token';
@@ -118,14 +118,14 @@ export default class QueApi {
           fs.writeFileSync(this.refreshTokenFile, '{"expires": 0, "token": ""}');
           fs.writeFileSync(this.bearerTokenFile, '{"expires": 0, "token": ""}');
           throw Error(`Maximum retires exceeded on failed Authorisation: http status code = ${response.status}\n
-          If you recently revoked access for clients on the Que portal, a restart should resolve the issue`);
+          If you recently revoked access for clients on the Neo portal, a restart should resolve the issue`);
         }
 
       case(response.status === 400):
         fs.writeFileSync(this.refreshTokenFile, '{"expires": 0, "token": ""}');
         fs.writeFileSync(this.bearerTokenFile, '{"expires": 0, "token": ""}');
         throw Error(`Looks like you have a username or password issue, check your config file: http status code = ${response.status}\n
-        If you recently revoked access for clients on the Que portal, a restart should resolve the issue`);
+        If you recently revoked access for clients on the Neo portal, a restart should resolve the issue`);
 
       // observed occasional gateway timeouts when querying the API. This allows for a couple of retries before failing
       // made the fall through after max retires return a manageable error to the functions as Actron API can be flaky
@@ -135,7 +135,7 @@ export default class QueApi {
           await wait();
           return this.manageApiRequest(requestContent, retries -1);
         } else {
-          const serverError = new Error(`Actron Neo API returned a server side error: http status code = ${response.status}`);
+          const serverError = new Error(`ActronAir Neo API returned a server side error: http status code = ${response.status}`);
           this.log.error('Maximum retries exceeded ->', serverError.message);
           errorResponse = {apiAccessError: serverError};
           return errorResponse;
@@ -303,7 +303,7 @@ export default class QueApi {
       }
     }
     if ('apiAccessError' in response || !valid_response) {
-      throw Error('Could not reach Actron Neo Cloud to retrieve system list and initialise plugin');
+      throw Error('Could not reach ActronAir Neo Cloud to retrieve system list and initialise plugin');
     }
     const systemList: object[] = response['_embedded']['ac-system'];
     // if there is no serial provided and only one system then assume this is the target system
@@ -366,14 +366,14 @@ export default class QueApi {
       loopIndex++;
       const sensorId = Object.keys(zone['Sensors'])[0];
 
-      // Have updated the logic from version 1.2.8 to check field NV_Exists to determine if zone is populated as have found an example
+      // Have updated the logic to check field NV_Exists to determine if zone is populated as have found an example
       // where the master controller is also the zone controller. Validated this logic should work across four different sample systems.
       if (!zone['NV_Exists']) {
         continue;
       }
 
       // Format the data in a standard model that could be used with multiple HVAC types. Not sure if this was worth the effort
-      // but if i have to create another HVAC plugin it will be worthwhile :)
+      // but if I have to create another HVAC plugin it will be worthwhile :)
       // This first section is the zone data, one of these per zone
       // some versions of the zone sensor do not support humidity readings so if its undefined we will insert notSupported
       const zoneData: ZoneStatus = {
@@ -396,7 +396,7 @@ export default class QueApi {
 
     }
 
-    // This is the standardised format for the master controller. again, this wil be useful if i need to do
+    // This is the standardised format for the master controller. again, this wil be useful if I need to do
     // this for another AC type
     const currentStatus: HvacStatus = {
       apiError: false,
@@ -451,12 +451,12 @@ export default class QueApi {
     return response['lastKnownState']['UserAirconSettings']['EnabledZones'];
   }
 
-  // defaulting zoneIndex here to 255 as this should be an invalid value, but maybe i should do something different
+  // defaulting zoneIndex here to 255 as this should be an invalid value, but maybe I should do something different
   async runCommand(commandType: validApiCommands, coolTemp = 20.0, heatTemp = 20.0, zoneIndex = 255): Promise<CommandResult> {
     // this function does what it says on the tin. Run the command issued to the system.
     // all possible commands are stored in 'queCommands'
     const currentStatus = await this.getZoneStatuses();
-    const command = queApiCommands[commandType](coolTemp, heatTemp, zoneIndex, currentStatus);
+    const command = neoApiCommands[commandType](coolTemp, heatTemp, zoneIndex, currentStatus);
     this.log.debug(`attempting to send command:\n ${JSON.stringify(command)}`);
     const preparedRequest = new Request (this.commandUrl, {
       method: 'POST',
