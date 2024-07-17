@@ -1,10 +1,12 @@
-import * as fs from 'fs';
+import type { Response, FetchError } from 'node-fetch';
 import { Logger } from 'homebridge';
 import { Schema, validate } from 'jtd';
 import { apiToken, tokenCollection, PowerState, validApiCommands, ZoneStatus, HvacStatus, CommandResult, ApiAccessError } from './types';
 import { AccessTokenSchema, BearerTokenSchema, SystemStatusSchema, AcSystemsSchema, CommandResponseSchema} from './schema';
 import { neoApiCommands } from './neoCommands';
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+const fetch = (...args: Parameters<typeof import('node-fetch').default>) => 
+  import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 
 // Defines an api interface for the Neo cloud service

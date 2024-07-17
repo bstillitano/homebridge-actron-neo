@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "Homebridge ActronAir Neo",
   "name": "homebridge-actronair-neo",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Homebridge plugin for controlling ActronAir Neo controller systems",
   "license": "Apache-2.0",
   "repository": {
