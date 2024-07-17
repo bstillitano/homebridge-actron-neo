@@ -127,7 +127,7 @@ export class ActronAirNeoPlatform implements DynamicPlatformPlugin {
 
   async discoverDevices() {
     try {
-      // Instantiate an instance of HvacUnit and connect the actronQueApi
+      // Instantiate an instance of HvacUnit and connect the actronNeoApi
       this.hvacInstance = new HvacUnit(this.clientName, this.log, this.api.user.storagePath(),
         this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers);
       let hvacSerial = '';
