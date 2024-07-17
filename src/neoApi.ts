@@ -1,4 +1,5 @@
 import type { Response, FetchError } from 'node-fetch';
+import * as fs from 'fs';
 import { Logger } from 'homebridge';
 import { Schema, validate } from 'jtd';
 import { apiToken, tokenCollection, PowerState, validApiCommands, ZoneStatus, HvacStatus, CommandResult, ApiAccessError } from './types';
@@ -6,7 +7,7 @@ import { AccessTokenSchema, BearerTokenSchema, SystemStatusSchema, AcSystemsSche
 import { neoApiCommands } from './neoCommands';
 
 const fetch = (...args: Parameters<typeof import('node-fetch').default>) => 
-  import('node-fetch').then(({default: fetch}) => fetch(...args));
+  import('node-fetch').then(({default: fetch}) => fetch(...args as [string | URL | import('node-fetch').Request, import('node-fetch').RequestInit?]));
 
 
 // Defines an api interface for the Neo cloud service
@@ -84,7 +85,11 @@ export default class NeoApi {
     let response: Response;
     let errorResponse: ApiAccessError;
     try {
-      response = await fetch(requestContent);
+      response = await fetch(requestContent.url, {
+        method: requestContent.method,
+        headers: requestContent.headers,
+        body: requestContent.body
+      });
     // Gracefully log and report errors for network outages in a recoverable fashion
     } catch (error) {
       const fetchError = error as FetchError;
