@@ -66,7 +66,7 @@ export default class NeoApi {
     this.bearerToken = JSON.parse(fs.readFileSync(this.bearerTokenFile).toString());
   }
 
-  async manageApiRequest(requestContent: Request, retries = 3, delay = 3): Promise<object> {
+  async manageApiRequest(requestContent: Request, retries = 3, delay = 3): Promise<object | ApiAccessError> {
     // manage api requests with a retry on error with delay
 
     // Simple function to cause a delay between retries
@@ -103,7 +103,7 @@ export default class NeoApi {
     switch (true) {
 
       case (response.status === 200):
-        return response.json();
+        return response.json() as Promise<object>;
       // If the bearer token has expired then generate new token, update request and retry
       // error will be generated after max retries is reached, default of 3
       // added logic to clear out cached tokens in recurring error states to better handle cases
