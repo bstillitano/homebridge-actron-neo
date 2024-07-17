@@ -15,6 +15,8 @@
       "rootDir": "./src",
       "strict": true,
       "esModuleInterop": true,
+      "moduleResolution": "Node",
+      "allowSyntheticDefaultImports": true,
       "noImplicitAny": false,
     },
     "include": [
