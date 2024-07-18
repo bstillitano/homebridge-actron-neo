@@ -1,20 +1,20 @@
 
-# ActronAir Neo/Nimbus API Cheat Sheet
-This document details the process of authenticating, querying and sending commands to the ActronAir Neo API.
+# Actron Neo/Nimbus API Cheat Sheet
+This document details the process of authenticating, querying and sending commands to the Actron Neo API.
 
-The details in this document have been aquired through online research, reverse engineering and testing against the Que API using my own ActronAir Neo account and AC system. This information is provided without garuntee or warranty of any kind and has not been validated or provided by Actron.
+The details in this document have been aquired through online research, reverse engineering and testing against the Que API using my own Actron Que account and AC system. This information is provided without garuntee or warranty of any kind and has not been validated or provided by Actron.
 
-All requests should be sent to the ActronAir Neo API servers located at: `https://nimbus.actronair.com.au`
+All requests should be sent to the Actron NEO API servers located at: `https://nimbus.actronair.com.au`
 
 ## Authentication ##
-Authentication to the ActronAir Neo API is a two step process.  
+Authentication to the Actron Neo API is a two step process.  
 1. Request a pairing token to authorise a new device
 2. Use pairing token to request a bearer token
 
 Following authentication the bearer token must be sent in the Authorization header for all API queries and commands.
 
 ### Request Pairing (Refresh) Token ###
-Specify the details of the client in the request body. The username and password are the credentials you use to login to your ActronAir Neo account. Device name and ID are values that you can set to any unique value. Client must be set to one of the options shown (ios, android, windowsphone or loadtest). I have only tested with this value set to ios.
+Specify the details of the client in the request body. The username and password are the credentials you use to login to your Actron Neo account. Device name and ID are values that you can set to any unique value. Client must be set to one of the options shown (ios, android, windowsphone or loadtest). I have only tested with this value set to ios.
 
 **Request**  
 Method: POST  
