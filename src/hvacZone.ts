@@ -1,5 +1,5 @@
 import { validApiCommands, ZoneStatus, CommandResult } from './types';
-import NeoApi from './neoApi';
+import QueApi from './queApi';
 import { Logger } from 'homebridge';
 
 export class HvacZone {
@@ -20,7 +20,7 @@ export class HvacZone {
 
   constructor(
         private readonly log: Logger,
-        readonly apiInterface: NeoApi,
+        readonly apiInterface: QueApi,
         zoneStatus: ZoneStatus,
   ) {
 
@@ -63,7 +63,7 @@ export class HvacZone {
   async getZoneStatus() {
     const refreshState = await this.apiInterface.getStatus();
     if (refreshState.apiError) {
-      this.log.warn('Failed to refresh status, ActronAir Neo Cloud unreachable');
+      this.log.warn('Failed to refresh status, Actron Neo Cloud unreachable');
       return refreshState;
     }
     const targetInstance = refreshState.zoneCurrentStatus.find(zoneInstance => zoneInstance.zoneName === this.zoneName) as ZoneStatus;
@@ -80,7 +80,7 @@ export class HvacZone {
       await this.getZoneStatus();
       this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API`);
     } else {
-      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.zoneEnabled;
   }
@@ -95,7 +95,7 @@ export class HvacZone {
       await this.getZoneStatus();
       this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API`);
     } else {
-      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.zoneEnabled;
   }
@@ -110,7 +110,7 @@ export class HvacZone {
       this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API.`);
       this.log.error(' Does your system support zone based temperature control?');
     } else {
-      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.currentHeatingSetTemp;
   }
@@ -124,7 +124,7 @@ export class HvacZone {
       await this.getZoneStatus();
       this.log.error(`Failed to set zone ${this.zoneIndex}, ${this.zoneName}, refreshing zone state from API`);
     } else {
-      this.log.warn('Failed to send command, ActronAir Neo Cloud unreachable');
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.currentCoolingSetTemp;
   }

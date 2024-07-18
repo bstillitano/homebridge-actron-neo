@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ActronAirNeoPlatform",
+  "pluginAlias": "ActronNeo",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -9,7 +9,7 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "ActronAirNeo"
+        "default": "ActronNeo"
       },
       "username": {
         "title": "Neo Account Username",
@@ -38,7 +38,7 @@
         "default": true
       },
       "zonesAsHeaterCoolers": {
-        "title": " Expose each zone as configurable Heater/Cooler accessories in HomeKit",
+        "title": " Expoze each zone as configurable Heater/Cooler accessories in HomeKit",
         "description": "If set to true, each zone will show as Heater/Cooler accessories inside HomeKit. Recommended that this is left false, which will cause each zone to show as an on off switch instead.",
         "type": "boolean",
         "required": false,
@@ -49,7 +49,7 @@
         "description": "Used to register plugin on Neo Cloud as an 'Authorised Device' & default HomeKit name.",
         "type": "string",
         "required": true,
-        "default": "homebridge-actronair-neo"
+        "default": "homebridge-actron-neo"
       },
       "refreshInterval": {
         "title": "Periodic Refresh Interval",

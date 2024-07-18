@@ -1,18 +1,18 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { ActronAirNeoPlatform } from './platform';
+import { ActronQuePlatform } from './platform';
 
-// This class represents the master controller, a separate class is used for representing zones (or will be once I write it)
+// This class represents the master controller, a separate class is used for representing zones (or will be once i write it)
 export class OutdoorUnitAccessory {
   private temperatureService: Service;
 
   constructor(
-    private readonly platform: ActronAirNeoPlatform,
+    private readonly platform: ActronQuePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'ActronAir')
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
       .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Outdoor Unit')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.platform.hvacInstance.serialNo);
 
