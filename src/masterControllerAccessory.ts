@@ -237,17 +237,24 @@ export class MasterControllerAccessory {
 
   async setFanMode(value: CharacteristicValue) {
     this.checkHvacComms();
+    const numericValue = Number(value);
+    
+    if (isNaN(numericValue)) {
+      this.platform.log.error('Invalid fan mode value');
+      return;
+    }
+  
     switch (true) {
-      case (value <= 30):
+      case (numericValue <= 30):
         await this.platform.hvacInstance.setFanModeLow();
         break;
-      case (value <= 60):
+      case (numericValue <= 60):
         await this.platform.hvacInstance.setFanModeMedium();
         break;
-      case (value <= 90):
+      case (numericValue <= 90):
         await this.platform.hvacInstance.setFanModeHigh();
         break;
-      case (value <= 100):
+      case (numericValue <= 100):
         await this.platform.hvacInstance.setFanModeAuto();
         break;
     }
