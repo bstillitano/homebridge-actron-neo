@@ -227,7 +227,3 @@ function modifiedZoneStatuses(status: boolean, zoneIndex: number, currentZoneSta
 }
 
 //#endregion "Helper Functions"
-
-
-
-

@@ -128,5 +128,3 @@ export interface HvacStatus {
   compressorCurrentTemp?: number;
   zoneCurrentStatus: ZoneStatus[];
   }
-
-
