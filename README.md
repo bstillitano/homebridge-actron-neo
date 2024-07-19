@@ -70,8 +70,6 @@ If you are not using the Homebridge config UI, you can add the following to your
 ]
 ```
 
-[Your existing detailed configuration options here]
-
 ## Controlling Zone Temperature Settings
 
 When modifying the zone temperature settings, the Neo system only allows you to set a temperature that is within -2 degrees (Heating) or +2 degrees (Cooling) of the Master Control temperature. With version 1.1.0, the default behaviour has been modified to automatically adjust the master temp if required when modifying a zone temp.
