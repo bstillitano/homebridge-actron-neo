@@ -37,12 +37,12 @@ export class OutdoorUnitAccessory {
 
   async updateDeviceCharacteristics() {
     const currentTemp = this.getCurrentTemperature();
-    if (currentTemp !== null) {
+    if (currentTemp !== undefined) {
       this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, currentTemp);
     }
   }
 
-  getCurrentTemperature(): CharacteristicValue | null {
+  getCurrentTemperature(): CharacteristicValue {
     const currentTemp = this.platform.hvacInstance.outdoorTemp;
     
     const isAvailable = currentTemp !== this.TEMPERATURE_UNAVAILABLE;
@@ -57,13 +57,14 @@ export class OutdoorUnitAccessory {
     }
 
     if (!isAvailable) {
-      return null;
+      // Return a default value when temperature is unavailable
+      return 0;
     } else if (currentTemp >= -50 && currentTemp <= 100) {
       this.platform.log.debug('Got outdoor temperature -> ', currentTemp);
       return currentTemp;
     } else {
-      this.platform.log.warn(`Invalid outdoor temperature reading: ${currentTemp}`);
-      return null;
+      this.platform.log.warn(`Invalid outdoor temperature reading: ${currentTemp}, returning default value`);
+      return 0;
     }
   }
 }

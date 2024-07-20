@@ -2,7 +2,6 @@ import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'home
 import { ClimateMode, CompressorMode, FanMode, PowerState } from './types';
 import { ActronQuePlatform } from './platform';
 
-// This class represents the master controller, a separate class is used for representing zones
 export class MasterControllerAccessory {
   private hvacService: Service;
   private humidityService: Service;
@@ -19,11 +18,11 @@ export class MasterControllerAccessory {
 
     // Get or create the heater cooler service.
     this.hvacService = this.accessory.getService(this.platform.Service.HeaterCooler)
-    || this.accessory.addService(this.platform.Service.HeaterCooler);
+      || this.accessory.addService(this.platform.Service.HeaterCooler);
 
     // Get or create the humidity sensor service.
     this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
-    || this.accessory.addService(this.platform.Service.HumiditySensor);
+      || this.accessory.addService(this.platform.Service.HumiditySensor);
 
     // Set accessory display name, this is taken from discover devices in platform
     this.hvacService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
@@ -47,17 +46,15 @@ export class MasterControllerAccessory {
     this.hvacService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getCurrentTemperature.bind(this));
 
-    // The min/max values here are based on the hardcoded data taken from my unit
     this.hvacService.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
       .setProps({
-        minValue: this.platform.minHeatingTemp,
+        minValue: Math.max(10, this.platform.minHeatingTemp),
         maxValue: this.platform.maxHeatingTemp,
         minStep: 0.5,
       })
       .onGet(this.getHeatingThresholdTemperature.bind(this))
       .onSet(this.setHeatingThresholdTemperature.bind(this));
 
-    // The min/max values here are based on the hardcoded data taken from my unit
     this.hvacService.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
       .setProps({
         minValue: this.platform.minCoolingTemp,
@@ -67,22 +64,15 @@ export class MasterControllerAccessory {
       .onGet(this.getCoolingThresholdTemperature.bind(this))
       .onSet(this.setCoolingThresholdTemperature.bind(this));
 
-    // This currently does not allow for continuos fan mode at any of the speed options.
-    // Setting fan mode to 0 seems to automatically trigger a power off (even though i don't request that)
-    // having some trouble with range of 0-4, cant seem to set slider to 4, only gets to 3
-    // need to revisit this
     this.hvacService.getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onSet(this.setFanMode.bind(this))
       .onGet(this.getFanMode.bind(this));
 
-    // Set the refresh interval for continuous device characteristic updates. Hardcoded to 1min here, I should make this a config option
+    // Set the refresh interval for continuous device characteristic updates.
     setInterval(() => this.hardUpdateDeviceCharacteristics(), this.platform.hardRefreshInterval);
     setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
   }
 
-  // SET's are async as these need to wait on API response then cache the return value on the hvac Class instance
-  // GET's run non async as this is a quick retrieval from the hvac class instance cache
-  // UPDATE is run Async as this polls the API first to confirm current cache state is accurate
   async hardUpdateDeviceCharacteristics() {
     const currentStatus = await this.platform.hvacInstance.getStatus();
     this.softUpdateDeviceCharacteristics();
@@ -116,7 +106,6 @@ export class MasterControllerAccessory {
 
   getHumidity(): CharacteristicValue {
     const currentHumidity = this.platform.hvacInstance.masterHumidity;
-    // this.platform.log.debug('Got Master Humidity -> ', currentHumidity);
     return currentHumidity;
   }
 
@@ -135,7 +124,6 @@ export class MasterControllerAccessory {
 
   getPowerState(): CharacteristicValue {
     const powerState = (this.platform.hvacInstance.powerState === PowerState.ON) ? 1 : 0;
-    // this.platform.log.debug('Got Master Power State -> ', powerState);
     return powerState;
   }
 
@@ -156,11 +144,9 @@ export class MasterControllerAccessory {
         currentMode = 0;
         this.platform.log.debug('Failed To Get Master Valid Compressor Mode -> ', compressorMode);
     }
-    // if the fan is not running then update state to idle
     if (!this.platform.hvacInstance.fanRunning) {
       currentMode = 1;
     }
-    // this.platform.log.debug('Got Master Compressor Mode -> ', compressorMode);
     return currentMode;
   }
 
@@ -199,13 +185,11 @@ export class MasterControllerAccessory {
         currentMode = 0;
         this.platform.log.debug('Failed To Get Master Target Climate Mode -> ', climateMode);
     }
-    // this.platform.log.debug('Got Master Target Climate Mode -> ', climateMode);
     return currentMode;
   }
 
   getCurrentTemperature(): CharacteristicValue {
     const currentTemp = this.platform.hvacInstance.masterCurrentTemp;
-    // this.platform.log.debug('Got Master Current Indoor Temperature -> ', currentTemp);
     return currentTemp;
   }
 
@@ -218,7 +202,6 @@ export class MasterControllerAccessory {
 
   getHeatingThresholdTemperature(): CharacteristicValue {
     const targetTemp = this.platform.hvacInstance.masterHeatingSetTemp;
-    // this.platform.log.debug('Got Master Target Heating Temperature -> ', targetTemp);
     return targetTemp;
   }
 
@@ -231,7 +214,6 @@ export class MasterControllerAccessory {
 
   getCoolingThresholdTemperature(): CharacteristicValue {
     const targetTemp = this.platform.hvacInstance.masterCoolingSetTemp;
-    // this.platform.log.debug('Got Master Target Cooling Temperature -> ', targetTemp);
     return targetTemp;
   }
 
@@ -281,7 +263,6 @@ export class MasterControllerAccessory {
         currentMode = 0;
         this.platform.log.debug('Failed To Get Master Current Fan Mode -> ', fanMode);
     }
-    // this.platform.log.debug('Got Master Current Fan Mode -> ', fanMode);
     return currentMode;
   }
 }
