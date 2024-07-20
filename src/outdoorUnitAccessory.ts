@@ -1,15 +1,15 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { ActronQuePlatform } from './platform';
 
-// This class represents the master controller, a separate class is used for representing zones (or will be once i write it)
 export class OutdoorUnitAccessory {
   private temperatureService: Service;
+  private readonly TEMPERATURE_UNAVAILABLE = 3000;  // The value Actron uses when temperature is unavailable
+  private lastTemperatureAvailability: boolean | null = null;
 
   constructor(
     private readonly platform: ActronQuePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
@@ -18,28 +18,52 @@ export class OutdoorUnitAccessory {
 
     // Get or create the temperature sensor service.
     this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
-    || this.accessory.addService(this.platform.Service.TemperatureSensor);
+      || this.accessory.addService(this.platform.Service.TemperatureSensor);
 
     // Set accessory display name, this is taken from discover devices in platform
-    this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName + '-outdoorUnit');
+    this.temperatureService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
     this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .onGet(this.getCurrentTemperature.bind(this));
+      .onGet(this.getCurrentTemperature.bind(this))
+      .setProps({
+        minValue: -50,
+        maxValue: 100,
+        minStep: 0.1
+      });
 
-    // setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
+    // Set up the refresh interval
+    setInterval(() => this.updateDeviceCharacteristics(), this.platform.softRefreshInterval);
   }
 
-  // SET's are async as these need to wait on API response then cache the return value on the hvac Class instance
-  // GET's run non async as this is a quick retrieval from the hvac class instance cache
-  // UPDATE is run Async as this polls the API first to confirm current cache state is accurate
-  async softUpdateDeviceCharacteristics() {
-    this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+  async updateDeviceCharacteristics() {
+    const currentTemp = this.getCurrentTemperature();
+    if (currentTemp !== null) {
+      this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, currentTemp);
+    }
   }
 
-  getCurrentTemperature(): CharacteristicValue {
+  getCurrentTemperature(): CharacteristicValue | null {
     const currentTemp = this.platform.hvacInstance.outdoorTemp;
-    // this.platform.log.debug('Got outdoor temperature -> ', currentTemp);
-    return currentTemp;
-  }
+    
+    const isAvailable = currentTemp !== this.TEMPERATURE_UNAVAILABLE;
 
+    if (isAvailable !== this.lastTemperatureAvailability) {
+      if (!isAvailable) {
+        this.platform.log.warn('Outdoor temperature reading became unavailable');
+      } else {
+        this.platform.log.info('Outdoor temperature reading became available');
+      }
+      this.lastTemperatureAvailability = isAvailable;
+    }
+
+    if (!isAvailable) {
+      return null;
+    } else if (currentTemp >= -50 && currentTemp <= 100) {
+      this.platform.log.debug('Got outdoor temperature -> ', currentTemp);
+      return currentTemp;
+    } else {
+      this.platform.log.warn(`Invalid outdoor temperature reading: ${currentTemp}`);
+      return null;
+    }
+  }
 }
