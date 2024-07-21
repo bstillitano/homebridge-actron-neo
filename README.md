@@ -1,6 +1,5 @@
 # homebridge-actronair-neo
 
-[![npm version](https://badge.fury.io/js/homebridge-actronair-neo.svg)](https://badge.fury.io/js/homebridge-actronair-neo)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Control your ActronAir Neo system with Apple HomeKit using Homebridge.
@@ -26,7 +25,6 @@ This is an 'almost' feature complete implementation of the Neo platform in HomeK
 - Control either a single zone or multi-zone system
 - Master controller and each zone sensor exposed as unique, controllable accessories in HomeKit
 - Temperature and humidity data from all zones and master controller reported in HomeKit
-- Temperature data from outdoor unit as a separate accessory
 - Battery level reporting on zone sensors with low battery alerts in the Home app
 - Support for Homebridge Config UI X
 

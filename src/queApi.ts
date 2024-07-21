@@ -393,7 +393,6 @@ export default class QueApi {
       };
       zoneCurrentStatus.push(zoneData);
       this.log.debug('Added zone: ', JSON.stringify(zoneData));
-
     }
 
     // This is the standardised format for the master controller. again, this wil be useful if i need to do
@@ -413,7 +412,6 @@ export default class QueApi {
       masterHeatingSetTemp: masterCurrentSettings['TemperatureSetpoint_Heat_oC'],
       masterCurrentTemp: masterCurrentState['LiveTemp_oC'],
       masterCurrentHumidity: masterCurrentState['LiveHumidity_pc'],
-      outdoorTemp: masterCurrentState['LiveOutdoorTemp_oC'],
       compressorChasingTemp: compressorCurrentState['CompressorChasingTemperature'],
       compressorCurrentTemp: compressorCurrentState['CompressorLiveTemperature'],
       zoneCurrentStatus: zoneCurrentStatus,

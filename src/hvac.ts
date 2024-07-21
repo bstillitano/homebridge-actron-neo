@@ -4,7 +4,6 @@ import { Logger } from 'homebridge';
 import { HvacZone } from './hvacZone';
 
 export class HvacUnit {
-
   readonly name: string;
   type = '';
   serialNo = '';
@@ -25,7 +24,6 @@ export class HvacUnit {
   masterHumidity = 0;
   compressorChasingTemp = 0;
   compressorCurrentTemp = 0;
-  outdoorTemp = 0;
   zoneData: ZoneStatus[] = [];
   zoneInstances: HvacZone[] = [];
 
@@ -71,14 +69,11 @@ export class HvacUnit {
     this.awayMode = (status.awayMode === undefined) ? this.awayMode : status.awayMode;
     this.quietMode = (status.quietMode === undefined) ? this.quietMode : status.quietMode;
     this.controlAllZones = (status.controlAllZones === undefined) ? this.controlAllZones : status.controlAllZones;
-    this.outdoorTemp = (status.outdoorTemp === undefined) ? this.outdoorTemp : status.outdoorTemp;
     this.masterCurrentTemp = (status.masterCurrentTemp === undefined) ? this.masterCurrentTemp : status.masterCurrentTemp;
     this.masterHumidity = (status.masterCurrentHumidity === undefined) ? this.masterHumidity : status.masterCurrentHumidity;
     this.zoneData = (status.zoneCurrentStatus === undefined) ? this.zoneData : status.zoneCurrentStatus;
 
-    // logic here is compare zoneData with zoneInstances.
-    // if a zone DOES exist in zoneInstance for corresponding zoneData then run .updateStatus on the instance with the data
-    // if a zone DOES NOT exist in zoneInstance for corresponding zoneData entry then create the zoneInstance
+    // Update zone instances
     for (const zone of this.zoneData) {
       const targetInstance = this.zoneInstances.find(zoneInstance => zoneInstance.zoneName === zone.zoneName);
       if (targetInstance) {
@@ -158,7 +153,6 @@ export class HvacUnit {
     return this.masterCoolingSetTemp;
   }
 
-
   async setHeatCoolTemp(coolTemp: number, heatTemp: number): Promise<number[]> {
     const response = await this.apiInterface.runCommand(validApiCommands.HEAT_COOL_SET_POINT, coolTemp, heatTemp);
     if (response === CommandResult.SUCCESS) {
@@ -170,7 +164,7 @@ export class HvacUnit {
     } else {
       this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
-    return [this.masterCoolingSetTemp, this.masterHeatingSetTemp = heatTemp];
+    return [this.masterCoolingSetTemp, this.masterHeatingSetTemp];
   }
 
   async setClimateModeAuto(): Promise<ClimateMode> {

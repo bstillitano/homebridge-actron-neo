@@ -7,6 +7,7 @@ export class ZoneControllerAccessory {
   private temperatureService: Service;
   private humidityService: Service;
   private batteryService: Service;
+  private lastLoggedHumidity: number | null = null;
 
   constructor(
     private readonly platform: ActronQuePlatform,
@@ -88,6 +89,38 @@ export class ZoneControllerAccessory {
     }
   }
 
+  getHumidity(): CharacteristicValue {
+    const currentHumidity = this.zone.currentHumidity;
+    if (typeof currentHumidity === 'number') {
+      if (this.lastLoggedHumidity === null || currentHumidity !== this.lastLoggedHumidity) {
+        this.platform.log.debug(`Humidity changed for zone ${this.zone.zoneName}: ${currentHumidity}`);
+        this.lastLoggedHumidity = currentHumidity;
+      }
+      return currentHumidity;
+    } else {
+      if (this.lastLoggedHumidity !== null) {
+        this.platform.log.warn(`Humidity not supported for zone ${this.zone.zoneName}`);
+        this.lastLoggedHumidity = null;
+      }
+      return 0;
+    }
+  }
+
+  getBatteryLevel(): CharacteristicValue {
+    return this.zone.zoneSensorBattery;
+  }
+
+  getChargingState(): CharacteristicValue {
+    // Assuming the battery is not chargeable
+    return this.platform.Characteristic.ChargingState.NOT_CHARGEABLE;
+  }
+
+  getLowBatteryStatus(): CharacteristicValue {
+    return this.zone.zoneSensorBattery < 20
+      ? this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+      : this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+  }
+
   async setEnableState(value: CharacteristicValue) {
     this.checkHvacComms();
     if (value as boolean) {
@@ -107,21 +140,6 @@ export class ZoneControllerAccessory {
   }
 
   getCurrentHumidity(): CharacteristicValue {
-    return this.zone.currentHumidity;
-  }
-
-  getBatteryLevel(): CharacteristicValue {
-    return this.zone.zoneSensorBattery;
-  }
-
-  getChargingState(): CharacteristicValue {
-    // Assuming the battery is not chargeable
-    return this.platform.Characteristic.ChargingState.NOT_CHARGEABLE;
-  }
-
-  getLowBatteryStatus(): CharacteristicValue {
-    return this.zone.zoneSensorBattery < 20
-      ? this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-      : this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    return this.getHumidity();
   }
 }
