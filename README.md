@@ -1,5 +1,8 @@
-# homebridge-actronair-neo
+# homebridge-actron-neo
 
+[![npm](https://img.shields.io/npm/v/homebridge-actron-neo/latest?label=latest)](https://www.npmjs.com/package/homebridge-actron-neo)
+[![GitHub release](https://img.shields.io/github/release/bstillitano/homebridge-actron-neosvg)](https://github.com/bstillitano/homebridge-actron-neo/releases)
+[![npm](https://img.shields.io/npm/dt/homebridge-actron-neo)](https://www.npmjs.com/package/homebridge-actron-neo)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Control your ActronAir Neo system with Apple HomeKit using Homebridge.
