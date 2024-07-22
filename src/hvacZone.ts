@@ -56,8 +56,8 @@ export class HvacZone {
     this.currentHeatingSetTemp = zoneStatus.currentHeatingSetTemp;
     this.currentCoolingSetTemp = zoneStatus.currentCoolingSetTemp;
     this.zoneSensorBattery = zoneStatus.zoneSensorBattery;
-    this.currentHumidity = this.zoneHumiditySensor && typeof zoneStatus.currentHumidity === 'number' 
-      ? zoneStatus.currentHumidity 
+    this.currentHumidity = this.zoneHumiditySensor && typeof zoneStatus.currentHumidity === 'number'
+      ? zoneStatus.currentHumidity
       : 'notSupported';
   }
 
