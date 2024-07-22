@@ -10,7 +10,7 @@ import { queApiCommands } from './queCommands';
 export default class QueApi {
 
   private readonly basePath: string = 'https://nimbus.actronair.com.au';
-  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actronair-neo-persist';
+  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actron-neo-persist';
   private readonly refreshTokenFile: string = this.persistentDataDir + '/access.token';
   private readonly bearerTokenFile: string = this.persistentDataDir + '/bearer.token';
   private readonly apiClientIdFile: string = this.persistentDataDir + '/clientid.token';

@@ -6,4 +6,4 @@ export const PLATFORM_NAME = 'ActronNeo';
 /**
 * This must match the name of your plugin as defined the package.json
 */
-export const PLUGIN_NAME = 'homebridge-actronair-neo';
+export const PLUGIN_NAME = 'homebridge-actron-neo';
