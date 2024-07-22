@@ -3,7 +3,6 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { MasterControllerAccessory } from './masterControllerAccessory';
 import { ZoneControllerAccessory } from './zoneControllerAccessory';
-import { OutdoorUnitAccessory } from './outdoorUnitAccessory';
 import { HvacUnit } from './hvac';
 import { HvacZone } from './hvacZone';
 import { DiscoveredDevices } from './types';
@@ -40,56 +39,38 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     if (config['deviceSerial']) {
       this.userProvidedSerialNo = config['deviceSerial'];
       this.log.debug('Serial number should only be added if you have multiple Neo systems. Serial provided ->', this.userProvidedSerialNo);
-    } else {
-      this.userProvidedSerialNo = '';
     }
-    if (config['zonesFollowMaster']) {
+    if (config['zonesFollowMaster'] !== undefined) {
       this.zonesFollowMaster = config['zonesFollowMaster'];
       this.log.debug('Control All Zones for Master is set to', this.zonesFollowMaster);
-    } else {
-      this.zonesFollowMaster = true;
     }
-    if (config['zonesPushMaster']) {
+    if (config['zonesPushMaster'] !== undefined) {
       this.zonesPushMaster = config['zonesPushMaster'];
       this.log.debug('Zones Push Master is set to', this.zonesPushMaster);
-    } else {
-      this.zonesPushMaster = true;
     }
-    if (config['zonesAsHeaterCoolers']) {
+    if (config['zonesAsHeaterCoolers'] !== undefined) {
       this.zonesAsHeaterCoolers = config['zonesAsHeaterCoolers'];
       this.log.debug('Zones As Heater/Coolers is set to', this.zonesAsHeaterCoolers);
-    } else {
-      this.zonesAsHeaterCoolers = false;
     }
     if (config['refreshInterval']) {
       this.hardRefreshInterval = config['refreshInterval'] * 1000;
       this.log.debug('Auto refresh interval set to seconds', this.hardRefreshInterval / 1000);
-    } else {
-      this.hardRefreshInterval = 60000;
     }
     if (config['maxCoolingTemp']) {
       this.maxCoolingTemp = config['maxCoolingTemp'];
       this.log.debug('Cooling threshold max set to', this.maxCoolingTemp);
-    } else {
-      this.maxCoolingTemp = 32;
     }
     if (config['minCoolingTemp']) {
       this.minCoolingTemp = config['minCoolingTemp'];
       this.log.debug('Cooling threshold min set to', this.minCoolingTemp);
-    } else {
-      this.minCoolingTemp = 20;
     }
     if (config['maxHeatingTemp']) {
       this.maxHeatingTemp = config['maxHeatingTemp'];
       this.log.debug('Heating threshold max set to', this.maxHeatingTemp);
-    } else {
-      this.maxHeatingTemp = 26;
     }
     if (config['minHeatingTemp']) {
       this.minHeatingTemp = config['minHeatingTemp'];
       this.log.debug('Heating threshold min set to', this.minHeatingTemp);
-    } else {
-      this.minHeatingTemp = 10;
     }
 
     // Check Required Config Fields
@@ -141,12 +122,6 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           displayName: this.clientName,
           instance: this.hvacInstance,
         },
-        {
-          type: 'outdoorUnit',
-          uniqueId: hvacSerial + '-outdoorUnit',
-          displayName: this.clientName + '-outdoorUnit',
-          instance: this.hvacInstance,
-        },
       ];
       for (const zone of this.hvacInstance.zoneInstances) {
         devices.push({
@@ -159,38 +134,26 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
       this.log.debug('Discovered Devices \n', devices);
       // loop over the discovered devices and register each one if it has not already been registered
       for (const device of devices) {
-        // create uuid first then see if an accessory with the same uuid has already been registered and restored from
-        // the cached devices we stored in the `configureAccessory` method above
         const uuid = this.api.hap.uuid.generate(device.uniqueId);
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-        // Create and/or restore cached accessories
-        if (existingAccessory && device.type === 'masterController') {
-          this.log.info('Restoring Master Controller accessory from cache:', existingAccessory.displayName);
-          new MasterControllerAccessory(this, existingAccessory);
-        } else if (existingAccessory && device.type === 'zoneController') {
-          this.log.info('Restoring Zone Controller accessory from cache:', existingAccessory.displayName);
-          new ZoneControllerAccessory(this, existingAccessory, device.instance as HvacZone);
-        } else if (existingAccessory && device.type === 'outdoorUnit') {
-          this.log.info('Restoring Outdoor Unit accessory from cache:', existingAccessory.displayName);
-          new OutdoorUnitAccessory(this, existingAccessory);
-        } else if (!existingAccessory && device.type === 'masterController') {
+        if (existingAccessory) {
+          if (device.type === 'masterController') {
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            new MasterControllerAccessory(this, existingAccessory);
+          } else if (device.type === 'zoneController') {
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            new ZoneControllerAccessory(this, existingAccessory, device.instance as HvacZone);
+          }
+        } else {
           this.log.info('Adding new accessory:', device.displayName);
           const accessory = new this.api.platformAccessory(device.displayName, uuid);
           accessory.context.device = device;
-          new MasterControllerAccessory(this, accessory);
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        } else if (!existingAccessory && device.type === 'zoneController') {
-          this.log.info('Adding new accessory:', device.displayName);
-          const accessory = new this.api.platformAccessory(device.displayName, uuid);
-          accessory.context.device = device;
-          new ZoneControllerAccessory(this, accessory, device.instance as HvacZone);
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        } else if (!existingAccessory && device.type === 'outdoorUnit') {
-          this.log.info('Adding new accessory:', device.displayName);
-          const accessory = new this.api.platformAccessory(device.displayName, uuid);
-          accessory.context.device = device;
-          new OutdoorUnitAccessory(this, accessory);
+          if (device.type === 'masterController') {
+            new MasterControllerAccessory(this, accessory);
+          } else if (device.type === 'zoneController') {
+            new ZoneControllerAccessory(this, accessory, device.instance as HvacZone);
+          }
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       }

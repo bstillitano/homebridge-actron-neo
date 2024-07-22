@@ -10,7 +10,7 @@ import { queApiCommands } from './queCommands';
 export default class QueApi {
 
   private readonly basePath: string = 'https://nimbus.actronair.com.au';
-  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actron-neo-persist';
+  private readonly persistentDataDir: string = this.hbUserStoragePath + '/homebridge-actronair-neo-persist';
   private readonly refreshTokenFile: string = this.persistentDataDir + '/access.token';
   private readonly bearerTokenFile: string = this.persistentDataDir + '/bearer.token';
   private readonly apiClientIdFile: string = this.persistentDataDir + '/clientid.token';
@@ -393,7 +393,6 @@ export default class QueApi {
       };
       zoneCurrentStatus.push(zoneData);
       this.log.debug('Added zone: ', JSON.stringify(zoneData));
-
     }
 
     // This is the standardised format for the master controller. again, this wil be useful if i need to do
@@ -413,7 +412,6 @@ export default class QueApi {
       masterHeatingSetTemp: masterCurrentSettings['TemperatureSetpoint_Heat_oC'],
       masterCurrentTemp: masterCurrentState['LiveTemp_oC'],
       masterCurrentHumidity: masterCurrentState['LiveHumidity_pc'],
-      outdoorTemp: masterCurrentState['LiveOutdoorTemp_oC'],
       compressorChasingTemp: compressorCurrentState['CompressorChasingTemperature'],
       compressorCurrentTemp: compressorCurrentState['CompressorLiveTemperature'],
       zoneCurrentStatus: zoneCurrentStatus,
