@@ -107,6 +107,7 @@ export class MasterControllerAccessory {
     this.hvacService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getCoolingThresholdTemperature());
     this.hvacService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getFanMode());
     this.humidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getHumidity());
+    this.awayModeSwitchService.updateCharacteristic(this.platform.Characteristic.On, this.getAwayMode());
   }
 
   checkHvacComms() {
