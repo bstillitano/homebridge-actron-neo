@@ -5,6 +5,7 @@ import { ActronQuePlatform } from './platform';
 export class MasterControllerAccessory {
   private hvacService: Service;
   private humidityService: Service;
+  private awayModeSwitchService: Service;
 
   constructor(
     private readonly platform: ActronQuePlatform,
@@ -68,6 +69,17 @@ export class MasterControllerAccessory {
       .onSet(this.setFanMode.bind(this))
       .onGet(this.getFanMode.bind(this));
 
+    // Get or create the away mode switch service.
+    this.awayModeSwitchService = this.accessory.getService(this.platform.Service.Switch)
+      || this.accessory.addService(this.platform.Service.Switch);
+
+    this.awayModeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Away Mode');
+
+    // register handlers for away mode control
+    this.awayModeSwitchService.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.setAwayMode.bind(this))
+      .onGet(this.getAwayMode.bind(this));
+
     // Set the refresh interval for continuous device characteristic updates.
     setInterval(() => this.hardUpdateDeviceCharacteristics(), this.platform.hardRefreshInterval);
     setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
@@ -95,6 +107,7 @@ export class MasterControllerAccessory {
     this.hvacService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getCoolingThresholdTemperature());
     this.hvacService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getFanMode());
     this.humidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getHumidity());
+    this.awayModeSwitchService.updateCharacteristic(this.platform.Characteristic.On, this.getAwayMode());
   }
 
   checkHvacComms() {
@@ -125,6 +138,21 @@ export class MasterControllerAccessory {
   getPowerState(): CharacteristicValue {
     const powerState = (this.platform.hvacInstance.powerState === PowerState.ON) ? 1 : 0;
     return powerState;
+  }
+
+  getAwayMode(): CharacteristicValue {
+    const awayMode = this.platform.hvacInstance.awayMode ? 1 : 0;
+    return awayMode;
+  }
+
+  async setAwayMode(value: CharacteristicValue) {
+    this.checkHvacComms();
+    if (value) {
+      await this.platform.hvacInstance.setAwayModeOn();
+    } else {
+      await this.platform.hvacInstance.setAwayModeOff();
+    }
+    this.platform.log.debug('Set Master Away Mode -> ', value);
   }
 
   getCurrentCompressorMode(): CharacteristicValue {
