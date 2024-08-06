@@ -6,6 +6,7 @@ export class MasterControllerAccessory {
   private hvacService: Service;
   private humidityService: Service;
   private awayModeSwitchService: Service;
+  private quietModeSwitchService: Service;
 
   constructor(
     private readonly platform: ActronQuePlatform,
@@ -80,6 +81,17 @@ export class MasterControllerAccessory {
       .onSet(this.setAwayMode.bind(this))
       .onGet(this.getAwayMode.bind(this));
 
+    // Get or create the "Quiet Mode"" switch service.
+    this.quietModeSwitchService = this.accessory.getService(this.platform.Service.Switch)
+    || this.accessory.addService(this.platform.Service.Switch);
+
+    this.quietModeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Quiet Mode');
+
+    // Register handlers for "Quiet Mode" control
+    this.quietModeSwitchService.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.setQuietMode.bind(this))
+      .onGet(this.getQuietMode.bind(this));
+
     // Set the refresh interval for continuous device characteristic updates.
     setInterval(() => this.hardUpdateDeviceCharacteristics(), this.platform.hardRefreshInterval);
     setInterval(() => this.softUpdateDeviceCharacteristics(), this.platform.softRefreshInterval);
@@ -108,6 +120,7 @@ export class MasterControllerAccessory {
     this.hvacService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getFanMode());
     this.humidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getHumidity());
     this.awayModeSwitchService.updateCharacteristic(this.platform.Characteristic.On, this.getAwayMode());
+    this.quietModeSwitchService.updateCharacteristic(this.platform.Characteristic.On, this.getQuietMode());
   }
 
   checkHvacComms() {
@@ -151,6 +164,21 @@ export class MasterControllerAccessory {
       await this.platform.hvacInstance.setAwayModeOn();
     } else {
       await this.platform.hvacInstance.setAwayModeOff();
+    }
+    this.platform.log.debug('Set Master Away Mode -> ', value);
+  }
+
+  getQuietMode(): CharacteristicValue {
+    const value = this.platform.hvacInstance.quietMode ? 1 : 0;
+    return value;
+  }
+
+  async setQuietMode(value: CharacteristicValue) {
+    this.checkHvacComms();
+    if (value) {
+      await this.platform.hvacInstance.setQuietModeOn();
+    } else {
+      await this.platform.hvacInstance.setQuietModeOff();
     }
     this.platform.log.debug('Set Master Away Mode -> ', value);
   }
