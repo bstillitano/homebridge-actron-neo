@@ -71,8 +71,8 @@ export class MasterControllerAccessory {
       .onGet(this.getFanMode.bind(this));
 
     // Get or create the away mode switch service.
-    this.awayModeSwitchService = this.accessory.getService(this.platform.Service.Switch)
-      || this.accessory.addService(this.platform.Service.Switch);
+    this.awayModeSwitchService = this.accessory.getService('neo_away_mode_service')
+      || this.accessory.addService(this.platform.Service.Switch, 'neo_away_mode_service', 'neo_away_mode_service');
 
     this.awayModeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Away Mode');
 
@@ -81,9 +81,9 @@ export class MasterControllerAccessory {
       .onSet(this.setAwayMode.bind(this))
       .onGet(this.getAwayMode.bind(this));
 
-    // Get or create the "Quiet Mode"" switch service.
-    this.quietModeSwitchService = this.accessory.getService(this.platform.Service.Switch)
-    || this.accessory.addService(this.platform.Service.Switch);
+    // Get or create the "Quiet Mode" switch service.
+    this.quietModeSwitchService = this.accessory.getService('neo_quiet_mode_service')
+    || this.accessory.addService(this.platform.Service.Switch, 'neo_quiet_mode_service', 'neo_quiet_mode_service');
 
     this.quietModeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Quiet Mode');
 
@@ -180,7 +180,7 @@ export class MasterControllerAccessory {
     } else {
       await this.platform.hvacInstance.setQuietModeOff();
     }
-    this.platform.log.debug('Set Master Away Mode -> ', value);
+    this.platform.log.debug('Set Master Quiet Mode -> ', value);
   }
 
   getCurrentCompressorMode(): CharacteristicValue {
