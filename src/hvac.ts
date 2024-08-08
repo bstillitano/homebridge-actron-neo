@@ -17,6 +17,7 @@ export class HvacUnit {
   fanRunning = false;
   awayMode = false;
   quietMode = false;
+  continuousFanMode = false;
   controlAllZones = false;
   masterCoolingSetTemp = 0;
   masterHeatingSetTemp = 0;
@@ -68,6 +69,7 @@ export class HvacUnit {
     this.compressorCurrentTemp = (status.compressorCurrentTemp === undefined) ? this.compressorCurrentTemp : status.compressorCurrentTemp;
     this.awayMode = (status.awayMode === undefined) ? this.awayMode : status.awayMode;
     this.quietMode = (status.quietMode === undefined) ? this.quietMode : status.quietMode;
+    this.continuousFanMode = (status.continuousFanMode === undefined) ? this.continuousFanMode : status.continuousFanMode;
     this.controlAllZones = (status.controlAllZones === undefined) ? this.controlAllZones : status.controlAllZones;
     this.masterCurrentTemp = (status.masterCurrentTemp === undefined) ? this.masterCurrentTemp : status.masterCurrentTemp;
     this.masterHumidity = (status.masterCurrentHumidity === undefined) ? this.masterHumidity : status.masterCurrentHumidity;
@@ -220,9 +222,9 @@ export class HvacUnit {
   }
 
   async setFanModeAuto(): Promise<FanMode> {
-    const response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_AUTO);
+    const response = await this.apiInterface.runCommand(this.continuousFanMode ? validApiCommands.FAN_MODE_AUTO_CONT : validApiCommands.FAN_MODE_AUTO);
     if (response === CommandResult.SUCCESS) {
-      this.fanMode = FanMode.AUTO;
+      this.fanMode = this.continuousFanMode ? FanMode.AUTO_CONT : FanMode.AUTO;
     } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
@@ -233,9 +235,9 @@ export class HvacUnit {
   }
 
   async setFanModeLow(): Promise<FanMode> {
-    const response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_LOW);
+    const response = await this.apiInterface.runCommand(this.continuousFanMode ? validApiCommands.FAN_MODE_LOW_CONT : validApiCommands.FAN_MODE_LOW);
     if (response === CommandResult.SUCCESS) {
-      this.fanMode = FanMode.LOW;
+      this.fanMode = this.continuousFanMode ? FanMode.LOW_CONT : FanMode.LOW;
     } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
@@ -246,9 +248,9 @@ export class HvacUnit {
   }
 
   async setFanModeMedium(): Promise<FanMode> {
-    const response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_MEDIUM);
+    const response = await this.apiInterface.runCommand(this.continuousFanMode ? validApiCommands.FAN_MODE_MEDIUM_CONT : validApiCommands.FAN_MODE_MEDIUM);
     if (response === CommandResult.SUCCESS) {
-      this.fanMode = FanMode.MEDIUM;
+      this.fanMode = this.continuousFanMode ? FanMode.MEDIUM_CONT : FanMode.MEDIUM;
     } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
@@ -259,9 +261,9 @@ export class HvacUnit {
   }
 
   async setFanModeHigh(): Promise<FanMode> {
-    const response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_HIGH);
+    const response = await this.apiInterface.runCommand(this.continuousFanMode ? validApiCommands.FAN_MODE_HIGH_CONT : validApiCommands.FAN_MODE_HIGH);
     if (response === CommandResult.SUCCESS) {
-      this.fanMode = FanMode.HIGH;
+      this.fanMode = this.continuousFanMode ? FanMode.HIGH_CONT : FanMode.HIGH;
     } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
@@ -321,5 +323,49 @@ export class HvacUnit {
       this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.quietMode;
+  }
+
+  async setContinuousFanModeOn(): Promise<boolean> {
+    let response: CommandResult = CommandResult.FAILURE;
+    if (this.fanMode === FanMode.AUTO || this.fanMode === FanMode.AUTO_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_AUTO_CONT);
+    } else if (this.fanMode === FanMode.HIGH || this.fanMode === FanMode.HIGH_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_HIGH_CONT);
+    } else if (this.fanMode === FanMode.MEDIUM || this.fanMode === FanMode.MEDIUM_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_MEDIUM_CONT);
+    } else if (this.fanMode === FanMode.LOW || this.fanMode === FanMode.LOW_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_LOW_CONT);
+    }
+    if (response === CommandResult.SUCCESS) {
+      this.continuousFanMode = true;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+    }
+    return this.continuousFanMode;
+  }
+
+  async setContinuousFanModeOff(): Promise<boolean> {
+    let response: CommandResult = CommandResult.FAILURE;
+    if (this.fanMode === FanMode.AUTO || this.fanMode === FanMode.AUTO_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_AUTO);
+    } else if (this.fanMode === FanMode.HIGH || this.fanMode === FanMode.HIGH_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_HIGH);
+    } else if (this.fanMode === FanMode.MEDIUM || this.fanMode === FanMode.MEDIUM_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_MEDIUM);
+    } else if (this.fanMode === FanMode.LOW || this.fanMode === FanMode.LOW_CONT) {
+      response = await this.apiInterface.runCommand(validApiCommands.FAN_MODE_LOW);
+    }
+    if (response === CommandResult.SUCCESS) {
+      this.continuousFanMode = false;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+    }
+    return this.continuousFanMode;
   }
 }

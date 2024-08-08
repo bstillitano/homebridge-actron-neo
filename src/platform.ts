@@ -4,6 +4,7 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { MasterControllerAccessory } from './masterControllerAccessory';
 import { ZoneControllerAccessory } from './zoneControllerAccessory';
 import { AwayModeAccessory } from './awayModeAccessory';
+import { ContinuousFanModeAccessory } from './continuousFanModeAccessory';
 import { QuietModeAccessory } from './quietModeAccessory';
 import { HvacUnit } from './hvac';
 import { HvacZone } from './hvacZone';
@@ -137,6 +138,12 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           displayName: 'Quiet Mode',
           instance: new HvacSetting('quiet-mode', 'Quiet Mode'),
         },
+        {
+          type: 'continuousFanModeController',
+          uniqueId: 'neo-continuos-fan-mode',
+          displayName: 'Continuous Mode',
+          instance: new HvacSetting('continuous-fan-mode', 'Continuous Fan Mode'),
+        },
       ];
       for (const zone of this.hvacInstance.zoneInstances) {
         devices.push({
@@ -165,6 +172,9 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           } else if (device.type === 'quietModeController') {
             this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
             new QuietModeAccessory(this, existingAccessory);
+          } else if (device.type === 'continuousFanModeController') {
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            new ContinuousFanModeAccessory(this, existingAccessory);
           }
         } else {
           this.log.info('Adding new accessory:', device.displayName);
@@ -178,6 +188,8 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
             new AwayModeAccessory(this, accessory);
           } else if (device.type === 'quietModeController') {
             new QuietModeAccessory(this, accessory);
+          } else if (device.type === 'continuousFanModeController') {
+            new ContinuousFanModeAccessory(this, accessory);
           }
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
