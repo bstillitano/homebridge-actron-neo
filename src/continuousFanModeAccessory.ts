@@ -1,6 +1,5 @@
 import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
 import { ActronQuePlatform } from './platform';
-import { FanMode } from './types';
 
 export class ContinuousFanModeAccessory {
   private modeService: Service;
