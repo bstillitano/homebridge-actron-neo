@@ -58,7 +58,7 @@ export const queApiCommands = {
   FAN_MODE_AUTO_CONT: () => (
     {
       'command': {
-        'UserAirconSettings.FanMode': 'AUTO-CONT',
+        'UserAirconSettings.FanMode': 'AUTO+CONT',
         'type': 'set-settings',
       },
     }),
@@ -74,7 +74,7 @@ export const queApiCommands = {
   FAN_MODE_LOW_CONT: () => (
     {
       'command': {
-        'UserAirconSettings.FanMode': 'LOW-CONT',
+        'UserAirconSettings.FanMode': 'LOW+CONT',
         'type': 'set-settings',
       },
     }),
@@ -90,7 +90,7 @@ export const queApiCommands = {
   FAN_MODE_MEDIUM_CONT: () => (
     {
       'command': {
-        'UserAirconSettings.FanMode': 'MED-CONT',
+        'UserAirconSettings.FanMode': 'MED+CONT',
         'type': 'set-settings',
       },
     }),
@@ -106,7 +106,7 @@ export const queApiCommands = {
   FAN_MODE_HIGH_CONT: () => (
     {
       'command': {
-        'UserAirconSettings.FanMode': 'HIGH-CONT',
+        'UserAirconSettings.FanMode': 'HIGH+CONT',
         'type': 'set-settings',
       },
     }),
