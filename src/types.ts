@@ -1,4 +1,5 @@
 import { HvacUnit } from './hvac';
+import { HvacSetting } from './hvacSetting';
 import { HvacZone } from './hvacZone';
 
 export enum CommandResult {
@@ -75,7 +76,7 @@ export interface DiscoveredDevices {
   type: string;
   uniqueId: string;
   displayName: string;
-  instance: HvacZone | HvacUnit;
+  instance: HvacZone | HvacUnit | HvacSetting;
 }
 
 export interface apiToken {

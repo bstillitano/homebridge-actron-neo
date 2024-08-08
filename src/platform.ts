@@ -3,9 +3,12 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { MasterControllerAccessory } from './masterControllerAccessory';
 import { ZoneControllerAccessory } from './zoneControllerAccessory';
+import { AwayModeAccessory } from './awayModeAccessory';
+import { QuietModeAccessory } from './quietModeAccessory';
 import { HvacUnit } from './hvac';
 import { HvacZone } from './hvacZone';
 import { DiscoveredDevices } from './types';
+import { HvacSetting } from './hvacSetting';
 
 export class ActronQuePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -122,6 +125,18 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           displayName: this.clientName,
           instance: this.hvacInstance,
         },
+        {
+          type: 'awayModeController',
+          uniqueId: 'neo-away-mode',
+          displayName: 'Away Mode',
+          instance: new HvacSetting('away-mode', 'Away Mode'),
+        },
+        {
+          type: 'quietModeController',
+          uniqueId: 'neo-quiet-mode',
+          displayName: 'Quiet Mode',
+          instance: new HvacSetting('quiet-mode', 'Quiet Mode'),
+        },
       ];
       for (const zone of this.hvacInstance.zoneInstances) {
         devices.push({
@@ -144,6 +159,12 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           } else if (device.type === 'zoneController') {
             this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
             new ZoneControllerAccessory(this, existingAccessory, device.instance as HvacZone);
+          } else if (device.type === 'awayModeController') {
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            new AwayModeAccessory(this, existingAccessory);
+          } else if (device.type === 'quietModeController') {
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            new QuietModeAccessory(this, existingAccessory);
           }
         } else {
           this.log.info('Adding new accessory:', device.displayName);
@@ -153,6 +174,10 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
             new MasterControllerAccessory(this, accessory);
           } else if (device.type === 'zoneController') {
             new ZoneControllerAccessory(this, accessory, device.instance as HvacZone);
+          } else if (device.type === 'awayModeController') {
+            new AwayModeAccessory(this, accessory);
+          } else if (device.type === 'quietModeController') {
+            new QuietModeAccessory(this, accessory);
           }
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
