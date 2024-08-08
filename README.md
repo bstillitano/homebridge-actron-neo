@@ -27,6 +27,9 @@ This is an 'almost' feature complete implementation of the Neo platform in HomeK
 
 - Control either a single zone or multi-zone system
 - Master controller and each zone sensor exposed as unique, controllable accessories in HomeKit
+- "Away mode" accessory
+- "Quiet mode" accessory
+- "Continuous mode" accessory
 - Temperature and humidity data from all zones and master controller reported in HomeKit
 - Battery level reporting on zone sensors with low battery alerts in the Home app
 - Support for Homebridge Config UI X
