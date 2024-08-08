@@ -341,6 +341,7 @@ export class HvacUnit {
     } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
       this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+      this.log.error(response);
     } else {
       this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }

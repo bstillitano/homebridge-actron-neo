@@ -35,10 +35,10 @@ export enum FanMode {
   LOW = 'LOW',
   MEDIUM = 'MED',
   HIGH = 'HIGH',
-  AUTO_CONT = 'AUTO-CONT',
-  LOW_CONT = 'LOW-CONT',
-  MEDIUM_CONT = 'MED-CONT',
-  HIGH_CONT = 'HIGH-CONT',
+  AUTO_CONT = 'AUTO+CONT',
+  LOW_CONT = 'LOW+CONT',
+  MEDIUM_CONT = 'MED+CONT',
+  HIGH_CONT = 'HIGH+CONT',
   UNKNOWN = 'UNKNOWN',
 }
 
