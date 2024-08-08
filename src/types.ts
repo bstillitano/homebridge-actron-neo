@@ -119,6 +119,7 @@ export interface HvacStatus {
   fanRunning?: boolean;
   awayMode?: boolean;
   quietMode?: boolean;
+  continuousFanMode?: boolean;
   controlAllZones?: boolean;
   masterCoolingSetTemp?: number;
   masterHeatingSetTemp?: number;
