@@ -129,13 +129,13 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
           type: 'awayModeController',
           uniqueId: 'neo-away-mode',
           displayName: 'Away Mode',
-          instance: new HvacSetting('', '', ''),
+          instance: new HvacSetting('away-mode', 'Away Mode'),
         },
         {
           type: 'quietModeController',
           uniqueId: 'neo-quiet-mode',
           displayName: 'Quiet Mode',
-          instance: new HvacSetting('', '', ''),
+          instance: new HvacSetting('quiet-mode', 'Quiet Mode'),
         },
       ];
       for (const zone of this.hvacInstance.zoneInstances) {
