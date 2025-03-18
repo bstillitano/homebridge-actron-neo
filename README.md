@@ -80,10 +80,6 @@ When modifying the zone temperature settings, the Neo system only allows you to 
 
 Setting `zonesPushMaster` to false will revert to the prior behaviour of constraining zones to the allowable max/min based on the current master setting. If you set a zone temperature that is outside of the +/- 2 degree range from the master, the plugin will translate the set temp to the allowable range.
 
-## Error Handling
-
-[Your existing error handling information here]
-
 ## Troubleshooting
 
 Here are some common issues and their solutions:
