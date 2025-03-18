@@ -49,65 +49,33 @@ export class HvacUnit {
     return this.serialNo;
   }
 
-  /**
-   * Retrieves the current status of the HVAC unit and updates internal state
-   * @returns The current HVAC status
-   */
   async getStatus(): Promise<HvacStatus> {
-    try {
-      const status = await this.apiInterface.getStatus();
+    const status = await this.apiInterface.getStatus();
 
-      if (status.apiError) {
-        this.log.warn('Failed to refresh status, Actron Neo Cloud unreachable or returned invalid data');
-        return status;
-      }
-
-      // Update all properties with new values if they exist
-      this.updateProperties(status);
-
-      // Update zone instances
-      this.updateZoneInstances();
-      
+    if (status.apiError) {
+      this.log.warn('Failed to refresh status, Actron Neo Cloud unreachable or returned invalid data');
       return status;
-    } catch (error) {
-      this.log.error(`Unexpected error in getStatus: ${error instanceof Error ? error.message : String(error)}`);
-      return { apiError: true, zoneCurrentStatus: [] };
     }
-  }
 
-  /**
-   * Updates the properties of the HVAC unit with the latest status
-   * @param status The current HVAC status
-   */
-  private updateProperties(status: HvacStatus): void {
-    // Helper function to update a property if the new value is defined
-    const updateIfDefined = <T>(currentValue: T, newValue: T | undefined): T => {
-      return (newValue === undefined) ? currentValue : newValue;
-    };
+    this.cloudConnected = (status.cloudConnected === undefined) ? this.cloudConnected : status.cloudConnected;
+    this.powerState = (status.powerState === undefined) ? this.powerState : status.powerState;
+    this.climateMode = (status.climateMode === undefined) ? this.climateMode : status.climateMode;
+    this.compressorMode = (status.compressorMode === undefined) ? this.compressorMode : status.compressorMode;
+    this.fanMode = (status.fanMode === undefined) ? this.fanMode : status.fanMode;
+    this.fanRunning = (status.fanRunning === undefined) ? this.fanRunning : status.fanRunning;
+    this.masterCoolingSetTemp = (status.masterCoolingSetTemp === undefined) ? this.masterCoolingSetTemp : status.masterCoolingSetTemp;
+    this.masterHeatingSetTemp = (status.masterHeatingSetTemp === undefined) ? this.masterHeatingSetTemp : status.masterHeatingSetTemp;
+    this.compressorChasingTemp = (status.compressorChasingTemp === undefined) ? this.compressorChasingTemp : status.compressorChasingTemp;
+    this.compressorCurrentTemp = (status.compressorCurrentTemp === undefined) ? this.compressorCurrentTemp : status.compressorCurrentTemp;
+    this.awayMode = (status.awayMode === undefined) ? this.awayMode : status.awayMode;
+    this.quietMode = (status.quietMode === undefined) ? this.quietMode : status.quietMode;
+    this.continuousFanMode = (status.continuousFanMode === undefined) ? this.continuousFanMode : status.continuousFanMode;
+    this.controlAllZones = (status.controlAllZones === undefined) ? this.controlAllZones : status.controlAllZones;
+    this.masterCurrentTemp = (status.masterCurrentTemp === undefined) ? this.masterCurrentTemp : status.masterCurrentTemp;
+    this.masterHumidity = (status.masterCurrentHumidity === undefined) ? this.masterHumidity : status.masterCurrentHumidity;
+    this.zoneData = (status.zoneCurrentStatus === undefined) ? this.zoneData : status.zoneCurrentStatus;
 
-    this.cloudConnected = updateIfDefined(this.cloudConnected, status.cloudConnected);
-    this.powerState = updateIfDefined(this.powerState, status.powerState);
-    this.climateMode = updateIfDefined(this.climateMode, status.climateMode);
-    this.compressorMode = updateIfDefined(this.compressorMode, status.compressorMode);
-    this.fanMode = updateIfDefined(this.fanMode, status.fanMode);
-    this.fanRunning = updateIfDefined(this.fanRunning, status.fanRunning);
-    this.masterCoolingSetTemp = updateIfDefined(this.masterCoolingSetTemp, status.masterCoolingSetTemp);
-    this.masterHeatingSetTemp = updateIfDefined(this.masterHeatingSetTemp, status.masterHeatingSetTemp);
-    this.compressorChasingTemp = updateIfDefined(this.compressorChasingTemp, status.compressorChasingTemp);
-    this.compressorCurrentTemp = updateIfDefined(this.compressorCurrentTemp, status.compressorCurrentTemp);
-    this.awayMode = updateIfDefined(this.awayMode, status.awayMode);
-    this.quietMode = updateIfDefined(this.quietMode, status.quietMode);
-    this.continuousFanMode = updateIfDefined(this.continuousFanMode, status.continuousFanMode);
-    this.controlAllZones = updateIfDefined(this.controlAllZones, status.controlAllZones);
-    this.masterCurrentTemp = updateIfDefined(this.masterCurrentTemp, status.masterCurrentTemp);
-    this.masterHumidity = updateIfDefined(this.masterHumidity, status.masterCurrentHumidity);
-    this.zoneData = updateIfDefined(this.zoneData, status.zoneCurrentStatus);
-  }
-
-  /**
-   * Updates the zone instances with the latest zone data
-   */
-  private updateZoneInstances(): void {
+    // Update zone instances
     for (const zone of this.zoneData) {
       const targetInstance = this.zoneInstances.find(zoneInstance => zoneInstance.zoneName === zone.zoneName);
       if (targetInstance) {
@@ -116,130 +84,75 @@ export class HvacUnit {
         this.zoneInstances.push(new HvacZone(this.log, this.apiInterface, zone));
       }
     }
+    return status;
   }
 
-  /**
-   * Generic method to handle command execution and error handling
-   * @param command The command to execute
-   * @param successValue The value to set on success
-   * @param propertyName The name of the property being updated (for logging)
-   * @returns The result of the command execution
-   */
-  private async executeCommand<T>(command: validApiCommands, successValue: T, propertyName: string): Promise<T> {
-    try {
-      const response = await this.apiInterface.runCommand(command);
-      
-      if (response === CommandResult.SUCCESS) {
-        return successValue;
-      } else if (response === CommandResult.FAILURE) {
-        await this.getStatus();
-        this.log.error(`Failed to set ${propertyName} for ${this.name}, refreshing state from API`);
-      } else {
-        this.log.warn(`Failed to send ${propertyName} command, Actron Neo Cloud unreachable`);
-      }
-      
-      return successValue;
-    } catch (error) {
-      this.log.error(`Error executing command ${command}: ${error instanceof Error ? error.message : String(error)}`);
-      await this.getStatus();
-      return successValue;
-    }
-  }
-
-  /**
-   * Turns the HVAC unit on
-   * @returns The current power state
-   */
   async setPowerStateOn(): Promise<PowerState> {
     if (this.powerState === PowerState.UNKNOWN) {
       await this.getStatus();
     }
-    
     if (this.powerState === PowerState.ON) {
       return PowerState.ON;
+    } else {
+      const response = await this.apiInterface.runCommand(validApiCommands.ON);
+      if (response === CommandResult.SUCCESS) {
+        this.powerState = PowerState.ON;
+      } else if (response === CommandResult.FAILURE) {
+        await this.getStatus();
+        this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+      } else {
+        this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      }
     }
-    
-    const result = await this.executeCommand(validApiCommands.ON, PowerState.ON, 'power state');
-    if (result === PowerState.ON) {
-      this.powerState = PowerState.ON;
-    }
-    
     return this.powerState;
   }
 
-  /**
-   * Turns the HVAC unit off
-   * @returns The current power state
-   */
   async setPowerStateOff(): Promise<PowerState> {
     if (this.powerState === PowerState.UNKNOWN) {
       await this.getStatus();
     }
-    
     if (this.powerState === PowerState.OFF) {
       return PowerState.OFF;
+    } else {
+      const response = await this.apiInterface.runCommand(validApiCommands.OFF);
+      if (response === CommandResult.SUCCESS) {
+        this.powerState = PowerState.OFF;
+      } else if (response === CommandResult.FAILURE) {
+        await this.getStatus();
+        this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+      } else {
+        this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
+      }
     }
-    
-    const result = await this.executeCommand(validApiCommands.OFF, PowerState.OFF, 'power state');
-    if (result === PowerState.OFF) {
-      this.powerState = PowerState.OFF;
-    }
-    
     return this.powerState;
   }
 
-  /**
-   * Sets the heating temperature
-   * @param heatTemp The heating temperature setpoint
-   * @returns The current heating temperature setpoint
-   */
   async setHeatTemp(heatTemp: number): Promise<number> {
-    try {
-      const coolTemp = 0;
-      const response = await this.apiInterface.runCommand(validApiCommands.HEAT_SET_POINT, coolTemp, heatTemp);
-      
-      if (response === CommandResult.SUCCESS) {
-        this.masterHeatingSetTemp = heatTemp;
-      } else if (response === CommandResult.FAILURE) {
-        await this.getStatus();
-        this.log.error(`Failed to set heating temperature for ${this.name}, refreshing state from API`);
-      } else {
-        this.log.warn('Failed to send heating temperature command, Actron Neo Cloud unreachable');
-      }
-      
-      return this.masterHeatingSetTemp;
-    } catch (error) {
-      this.log.error(`Error setting heating temperature: ${error instanceof Error ? error.message : String(error)}`);
+    const coolTemp = 0;
+    const response = await this.apiInterface.runCommand(validApiCommands.HEAT_SET_POINT, coolTemp, heatTemp);
+    if (response === CommandResult.SUCCESS) {
+      this.masterHeatingSetTemp = heatTemp;
+    } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
-      return this.masterHeatingSetTemp;
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
+    return this.masterHeatingSetTemp;
   }
 
-  /**
-   * Sets the cooling temperature
-   * @param coolTemp The cooling temperature setpoint
-   * @returns The current cooling temperature setpoint
-   */
   async setCoolTemp(coolTemp: number): Promise<number> {
-    try {
-      const heatTemp = 0;
-      const response = await this.apiInterface.runCommand(validApiCommands.COOL_SET_POINT, coolTemp, heatTemp);
-      
-      if (response === CommandResult.SUCCESS) {
-        this.masterCoolingSetTemp = coolTemp;
-      } else if (response === CommandResult.FAILURE) {
-        await this.getStatus();
-        this.log.error(`Failed to set cooling temperature for ${this.name}, refreshing state from API`);
-      } else {
-        this.log.warn('Failed to send cooling temperature command, Actron Neo Cloud unreachable');
-      }
-      
-      return this.masterCoolingSetTemp;
-    } catch (error) {
-      this.log.error(`Error setting cooling temperature: ${error instanceof Error ? error.message : String(error)}`);
+    const heatTemp = 0;
+    const response = await this.apiInterface.runCommand(validApiCommands.COOL_SET_POINT, coolTemp, heatTemp);
+    if (response === CommandResult.SUCCESS) {
+      this.masterCoolingSetTemp = coolTemp;
+    } else if (response === CommandResult.FAILURE) {
       await this.getStatus();
-      return this.masterCoolingSetTemp;
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
+    return this.masterCoolingSetTemp;
   }
 
   async setHeatCoolTemp(coolTemp: number, heatTemp: number): Promise<number[]> {
@@ -256,38 +169,41 @@ export class HvacUnit {
     return [this.masterCoolingSetTemp, this.masterHeatingSetTemp];
   }
 
-  /**
-   * Sets the climate mode to Auto
-   * @returns The current climate mode
-   */
   async setClimateModeAuto(): Promise<ClimateMode> {
-    const result = await this.executeCommand(validApiCommands.CLIMATE_MODE_AUTO, ClimateMode.AUTO, 'climate mode');
-    if (result === ClimateMode.AUTO) {
+    const response = await this.apiInterface.runCommand(validApiCommands.CLIMATE_MODE_AUTO);
+    if (response === CommandResult.SUCCESS) {
       this.climateMode = ClimateMode.AUTO;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.climateMode;
   }
 
-  /**
-   * Sets the climate mode to Cool
-   * @returns The current climate mode
-   */
   async setClimateModeCool(): Promise<ClimateMode> {
-    const result = await this.executeCommand(validApiCommands.CLIMATE_MODE_COOL, ClimateMode.COOL, 'climate mode');
-    if (result === ClimateMode.COOL) {
+    const response = await this.apiInterface.runCommand(validApiCommands.CLIMATE_MODE_COOL);
+    if (response === CommandResult.SUCCESS) {
       this.climateMode = ClimateMode.COOL;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.climateMode;
   }
 
-  /**
-   * Sets the climate mode to Heat
-   * @returns The current climate mode
-   */
   async setClimateModeHeat(): Promise<ClimateMode> {
-    const result = await this.executeCommand(validApiCommands.CLIMATE_MODE_HEAT, ClimateMode.HEAT, 'climate mode');
-    if (result === ClimateMode.HEAT) {
+    const response = await this.apiInterface.runCommand(validApiCommands.CLIMATE_MODE_HEAT);
+    if (response === CommandResult.SUCCESS) {
       this.climateMode = ClimateMode.HEAT;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.climateMode;
   }
@@ -357,50 +273,54 @@ export class HvacUnit {
     return this.fanMode;
   }
 
-  /**
-   * Turns on Away mode
-   * @returns The current Away mode state
-   */
   async setAwayModeOn(): Promise<boolean> {
-    const result = await this.executeCommand(validApiCommands.AWAY_MODE_ON, true, 'away mode');
-    if (result) {
+    const response = await this.apiInterface.runCommand(validApiCommands.AWAY_MODE_ON);
+    if (response === CommandResult.SUCCESS) {
       this.awayMode = true;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.awayMode;
   }
 
-  /**
-   * Turns off Away mode
-   * @returns The current Away mode state
-   */
   async setAwayModeOff(): Promise<boolean> {
-    const result = await this.executeCommand(validApiCommands.AWAY_MODE_OFF, false, 'away mode');
-    if (!result) {
+    const response = await this.apiInterface.runCommand(validApiCommands.AWAY_MODE_OFF);
+    if (response === CommandResult.SUCCESS) {
       this.awayMode = false;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.awayMode;
   }
 
-  /**
-   * Turns on Quiet mode
-   * @returns The current Quiet mode state
-   */
   async setQuietModeOn(): Promise<boolean> {
-    const result = await this.executeCommand(validApiCommands.QUIET_MODE_ON, true, 'quiet mode');
-    if (result) {
+    const response = await this.apiInterface.runCommand(validApiCommands.QUIET_MODE_ON);
+    if (response === CommandResult.SUCCESS) {
       this.quietMode = true;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.quietMode;
   }
 
-  /**
-   * Turns off Quiet mode
-   * @returns The current Quiet mode state
-   */
   async setQuietModeOff(): Promise<boolean> {
-    const result = await this.executeCommand(validApiCommands.QUIET_MODE_OFF, false, 'quiet mode');
-    if (!result) {
+    const response = await this.apiInterface.runCommand(validApiCommands.QUIET_MODE_OFF);
+    if (response === CommandResult.SUCCESS) {
       this.quietMode = false;
+    } else if (response === CommandResult.FAILURE) {
+      await this.getStatus();
+      this.log.error(`Failed to set master ${this.name}, refreshing master state from API`);
+    } else {
+      this.log.warn('Failed to send command, Actron Neo Cloud unreachable');
     }
     return this.quietMode;
   }

@@ -18,7 +18,6 @@ export default class QueApi {
   private apiClientId: string;
   private commandUrl!: string;
   private queryUrl!: string;
-  private _cachedZoneEnabledStates: boolean[] = [];
   actronSerial = '';
   actronSystemId = '';
   refreshToken: apiToken;
@@ -326,13 +325,9 @@ export default class QueApi {
     }
   }
 
-  /**
-   * Retrieves the full status of the aircon unit and all zones
-   * @returns A HvacStatus object containing the current status of the HVAC system
-   */
   async getStatus(): Promise<HvacStatus> {
-    this.log.debug('Retrieving HVAC status from Actron Cloud');
-    const preparedRequest = new Request(this.queryUrl, {
+    // retrieves the full status of the aircon unit and all zones
+    const preparedRequest = new Request (this.queryUrl, {
       method: 'GET',
       headers: {'Authorization': `Bearer ${this.bearerToken.token}`, 'Accept': 'application/json'},
     });
@@ -344,13 +339,12 @@ export default class QueApi {
       valid_response = await this.validateSchema(SystemStatusSchema, response);
     } catch (error) {
       if (error instanceof Error) {
-        this.log.error(`Error retrieving HVAC status: ${error.message}`);
-        // Return error status but don't throw to allow for recovery
+        this.log.error(error.message);
+        // decided not to throw error in this case to see if we can silently recover
       }
     }
 
     if ('apiAccessError' in response || !valid_response) {
-      this.log.warn('Failed to retrieve HVAC status: API error or invalid response');
       const currentStatus: HvacStatus = {apiError: true, zoneCurrentStatus: []};
       return currentStatus;
     }
@@ -403,9 +397,6 @@ export default class QueApi {
 
     // This is the standardised format for the master controller. again, this wil be useful if i need to do
     // this for another AC type
-    // Cache the zone enabled states for future use in getZoneStatuses
-    this._cachedZoneEnabledStates = masterCurrentSettings['EnabledZones'];
-    
     const currentStatus: HvacStatus = {
       apiError: false,
       cloudConnected: hvacOnline,
@@ -425,26 +416,14 @@ export default class QueApi {
       compressorCurrentTemp: compressorCurrentState['CompressorLiveTemperature'],
       zoneCurrentStatus: zoneCurrentStatus,
     };
-    this.log.debug(`Got current status from Actron Cloud`);
+    this.log.debug(`Got current status from Actron Cloud:\n ${JSON.stringify(currentStatus)}`);
     return currentStatus;
   }
 
-  /**
-   * Gets the current status of all zones
-   * @returns An array of boolean values representing the enabled state of each zone
-   */
   async getZoneStatuses(): Promise<boolean[]> {
-    // Instead of making a redundant API call, we'll use the cached zone data if available
-    // This is more efficient and reduces API load
-    
-    // If we have valid zone data already, use it
-    if (this._cachedZoneEnabledStates.length > 0) {
-      this.log.debug('Using cached zone status information');
-      return this._cachedZoneEnabledStates;
-    }
-    
-    // Otherwise, we need to get the full status
-    const preparedRequest = new Request(this.queryUrl, {
+    // TODO - Shouldn't need to make this call, data should be available already beacuse we've made the `getStatus` call.
+    // retrieves the full status of the aircon unit and all zones
+    const preparedRequest = new Request (this.queryUrl, {
       method: 'GET',
       headers: {'Authorization': `Bearer ${this.bearerToken.token}`, 'Accept': 'application/json'},
     });
@@ -456,38 +435,28 @@ export default class QueApi {
       valid_response = await this.validateSchema(SystemStatusSchema, response);
     } catch (error) {
       if (error instanceof Error) {
-        this.log.error(`Error retrieving zone status: ${error.message}`);
-        // Return empty array but don't throw to allow for recovery
+        this.log.error(error.message);
+        // decided not to throw error in this case to see if we can silently recover
       }
     }
 
     if ('apiAccessError' in response || !valid_response) {
-      this.log.error('Unable to retrieve zone status information: API error or invalid response');
+      // TODO: - Return meaningful error
+      this.log.error('Unable to retrieve zone status information');
       return [];
     }
 
-    // Cache the zone enabled states for future use
-    this._cachedZoneEnabledStates = response['lastKnownState']['UserAirconSettings']['EnabledZones'];
-    return this._cachedZoneEnabledStates;
+    return response['lastKnownState']['UserAirconSettings']['EnabledZones'];
   }
 
-  /**
-   * Sends a command to the HVAC system
-   * @param commandType The type of command to send
-   * @param coolTemp The cooling temperature setpoint (if applicable)
-   * @param heatTemp The heating temperature setpoint (if applicable)
-   * @param zoneIndex The zone index to target (if applicable, 255 is invalid/not used)
-   * @returns A CommandResult indicating success, failure, or API error
-   */
+  // defaulting zoneIndex here to 255 as this should be an invalid value, but maybe i should do something different
   async runCommand(commandType: validApiCommands, coolTemp = 20.0, heatTemp = 20.0, zoneIndex = 255): Promise<CommandResult> {
-    // Get the current zone statuses - using our optimized method that may use cached data
+    // this function does what it says on the tin. Run the command issued to the system.
+    // all possible commands are stored in 'queCommands'
     const currentStatus = await this.getZoneStatuses();
-    
-    // Generate the command using the queApiCommands factory
     const command = queApiCommands[commandType](coolTemp, heatTemp, zoneIndex, currentStatus);
-    this.log.debug(`Sending command: ${commandType}`);
-    
-    const preparedRequest = new Request(this.commandUrl, {
+    this.log.debug(`attempting to send command:\n ${JSON.stringify(command)}`);
+    const preparedRequest = new Request (this.commandUrl, {
       method: 'POST',
       headers: {'Authorization': `Bearer ${this.bearerToken.token}`, 'Content-Type': 'application/json'},
       body: JSON.stringify(command),
@@ -500,26 +469,25 @@ export default class QueApi {
       valid_response = await this.validateSchema(CommandResponseSchema, response);
     } catch (error) {
       if (error instanceof Error) {
-        this.log.error(`Error sending command: ${error.message}`);
-        return CommandResult.API_ERROR;
+        this.log.error(error.message);
+        // decided not to throw error in this case to see if we can silently recover
       }
     }
 
     if ('apiAccessError' in response) {
-      this.log.error(`API Error when sending command: ${commandType}`);
+      this.log.error(`API Error when attempting command send:\n ${JSON.stringify(command)}`);
+      this.log.error(`API responded with:\n ${JSON.stringify(response)}`);
       return CommandResult.API_ERROR;
     } else if (!valid_response) {
-      this.log.error(`Schema validation failure when sending command: ${commandType}`);
+      this.log.error(`Schema validation failure when attempting command send:\n ${JSON.stringify(command)}`);
       return CommandResult.API_ERROR;
     } else if (response['type'] === 'ack') {
-      this.log.debug(`Command successful: ${commandType}`);
-      
-      // Clear the cache after a successful command since the state has changed
-      this._cachedZoneEnabledStates = [];
-      
+      this.log.debug(`Command successful, 'ack' received from Actron Cloud:\n ${JSON.stringify(response['value'])}`);
       return CommandResult.SUCCESS;
     } else {
-      this.log.error(`Command failed: ${commandType}`);
+      this.log.debug(`Command failed, NO 'ack' received from Actron Cloud:\n 
+      Command attempted: ${JSON.stringify(command)}\n
+      API response: ${JSON.stringify(response)}`);
       return CommandResult.FAILURE;
     }
   }
