@@ -76,7 +76,7 @@ export const createMockApi = (): jest.Mocked<API> => {
         HumiditySensor: 'HumiditySensor',
         TemperatureSensor: 'TemperatureSensor',
         Switch: 'Switch',
-        BatteryService: 'BatteryService',
+        Battery: 'Battery',
       },
       Characteristic: {
         Manufacturer: 'Manufacturer',
