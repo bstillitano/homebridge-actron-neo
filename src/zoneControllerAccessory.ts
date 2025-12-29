@@ -58,8 +58,8 @@ export class ZoneControllerAccessory {
       || this.accessory.addService(this.platform.Service.HumiditySensor);
 
     // Get or create the battery service
-    this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)
-      || this.accessory.addService(this.platform.Service.BatteryService);
+    this.batteryService = this.accessory.getService(this.platform.Service.Battery)
+      || this.accessory.addService(this.platform.Service.Battery);
 
     // Set accessory display name
     this.zoneService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);

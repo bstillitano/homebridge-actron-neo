@@ -70,7 +70,7 @@ describe('ZoneControllerAccessory', () => {
         HeaterCooler: 'HeaterCooler',
         TemperatureSensor: 'TemperatureSensor',
         HumiditySensor: 'HumiditySensor',
-        BatteryService: 'BatteryService',
+        Battery: 'Battery',
       },
       Characteristic: {
         Manufacturer: 'Manufacturer',
