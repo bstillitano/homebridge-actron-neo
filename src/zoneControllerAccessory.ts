@@ -5,8 +5,8 @@ import { HvacZone } from './hvacZone';
 
 export class ZoneControllerAccessory {
   private zoneService: Service;
-  private temperatureService: Service;
-  private humidityService: Service;
+  private temperatureService: Service | undefined;
+  private humidityService: Service | undefined;
   private batteryService: Service;
   private lastLoggedHumidity: number | null = null;
 
@@ -40,22 +40,27 @@ export class ZoneControllerAccessory {
         || this.accessory.addService(this.platform.Service.Switch);
     }
 
-    // Get or create the temperature sensor service (only when not using HeaterCooler)
-    if (!this.platform.zonesAsHeaterCoolers) {
-      this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
-        || this.accessory.addService(this.platform.Service.TemperatureSensor);
-    } else {
-      // Remove temperature sensor when using HeaterCooler (it has CurrentTemperature built-in)
-      const existingTempSensor = this.accessory.getService(this.platform.Service.TemperatureSensor);
-      if (existingTempSensor) {
-        this.accessory.removeService(existingTempSensor);
-      }
-      this.temperatureService = this.zoneService; // Use HeaterCooler service for temp
+    // Remove temperature sensor - HeaterCooler has built-in temp, Switch mode doesn't need it
+    const existingTempSensor = this.accessory.getService(this.platform.Service.TemperatureSensor);
+    if (existingTempSensor) {
+      this.accessory.removeService(existingTempSensor);
+    }
+    // For HeaterCooler mode, use the zoneService for temperature characteristics
+    if (this.platform.zonesAsHeaterCoolers) {
+      this.temperatureService = this.zoneService;
     }
 
-    // Get or create the humidity sensor service
-    this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
-      || this.accessory.addService(this.platform.Service.HumiditySensor);
+    // Get or create the humidity sensor service (only for HeaterCooler mode)
+    if (this.platform.zonesAsHeaterCoolers) {
+      this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
+        || this.accessory.addService(this.platform.Service.HumiditySensor);
+    } else {
+      // Remove humidity sensor when using Switch mode
+      const existingHumiditySensor = this.accessory.getService(this.platform.Service.HumiditySensor);
+      if (existingHumiditySensor) {
+        this.accessory.removeService(existingHumiditySensor);
+      }
+    }
 
     // Get or create the battery service
     this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)
@@ -67,11 +72,10 @@ export class ZoneControllerAccessory {
     // Set up characteristics based on service type
     if (this.platform.zonesAsHeaterCoolers) {
       this.setupHeaterCoolerCharacteristics();
+      this.setupHumidityCharacteristics();
     } else {
       this.setupSwitchCharacteristics();
-      this.setupTemperatureCharacteristics();
     }
-    this.setupHumidityCharacteristics();
     this.setupBatteryCharacteristics();
 
     // Set up the update interval
@@ -124,12 +128,12 @@ export class ZoneControllerAccessory {
   }
 
   private setupTemperatureCharacteristics() {
-    this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+    this.temperatureService?.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getCurrentTemperature.bind(this));
   }
 
   private setupHumidityCharacteristics() {
-    this.humidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+    this.humidityService?.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
       .onGet(this.getCurrentHumidity.bind(this));
   }
 
@@ -151,12 +155,11 @@ export class ZoneControllerAccessory {
       this.zoneService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
       this.zoneService.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getHeatingThresholdTemperature());
       this.zoneService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getCoolingThresholdTemperature());
+      this.humidityService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getCurrentHumidity());
     } else {
       // Update Switch characteristics
       this.zoneService.updateCharacteristic(this.platform.Characteristic.On, this.getEnableState());
-      this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
     }
-    this.humidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getCurrentHumidity());
     this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.getBatteryLevel());
     this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.getLowBatteryStatus());
   }
