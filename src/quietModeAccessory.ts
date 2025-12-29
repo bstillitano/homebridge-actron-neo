@@ -11,7 +11,7 @@ export class QuietModeAccessory {
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
-      .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Zone Controller');
+      .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Controller');
 
     // Get or create the switch service
     this.modeService = this.accessory.getService(this.platform.Service.Switch)
