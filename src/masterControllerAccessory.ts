@@ -247,16 +247,20 @@ export class MasterControllerAccessory {
     let currentMode: number;
     const fanMode = this.platform.hvacInstance.fanMode;
     switch (fanMode) {
-      case FanMode.AUTO || FanMode.AUTO_CONT:
+      case FanMode.AUTO:
+      case FanMode.AUTO_CONT:
         currentMode = 100;
         break;
-      case FanMode.LOW || FanMode.LOW_CONT:
+      case FanMode.LOW:
+      case FanMode.LOW_CONT:
         currentMode = 29;
         break;
-      case FanMode.MEDIUM || FanMode.MEDIUM_CONT:
+      case FanMode.MEDIUM:
+      case FanMode.MEDIUM_CONT:
         currentMode = 59;
         break;
-      case FanMode.HIGH || FanMode.HIGH_CONT:
+      case FanMode.HIGH:
+      case FanMode.HIGH_CONT:
         currentMode = 89;
         break;
       default:
