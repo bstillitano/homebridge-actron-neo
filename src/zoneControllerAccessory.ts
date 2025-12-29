@@ -1,4 +1,5 @@
 import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
+import { ClimateMode, CompressorMode } from './types';
 import { ActronQuePlatform } from './platform';
 import { HvacZone } from './hvacZone';
 
@@ -20,13 +21,37 @@ export class ZoneControllerAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Zone Controller')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.zone.sensorId);
 
-    // Get or create the switch service
-    this.zoneService = this.accessory.getService(this.platform.Service.Switch)
-      || this.accessory.addService(this.platform.Service.Switch);
+    // Get or create zone service based on config
+    if (this.platform.zonesAsHeaterCoolers) {
+      // Remove any existing Switch service when using HeaterCooler mode
+      const existingSwitch = this.accessory.getService(this.platform.Service.Switch);
+      if (existingSwitch) {
+        this.accessory.removeService(existingSwitch);
+      }
+      this.zoneService = this.accessory.getService(this.platform.Service.HeaterCooler)
+        || this.accessory.addService(this.platform.Service.HeaterCooler);
+    } else {
+      // Remove any existing HeaterCooler service when using Switch mode
+      const existingHeaterCooler = this.accessory.getService(this.platform.Service.HeaterCooler);
+      if (existingHeaterCooler) {
+        this.accessory.removeService(existingHeaterCooler);
+      }
+      this.zoneService = this.accessory.getService(this.platform.Service.Switch)
+        || this.accessory.addService(this.platform.Service.Switch);
+    }
 
-    // Get or create the temperature sensor service
-    this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
-      || this.accessory.addService(this.platform.Service.TemperatureSensor);
+    // Get or create the temperature sensor service (only when not using HeaterCooler)
+    if (!this.platform.zonesAsHeaterCoolers) {
+      this.temperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor)
+        || this.accessory.addService(this.platform.Service.TemperatureSensor);
+    } else {
+      // Remove temperature sensor when using HeaterCooler (it has CurrentTemperature built-in)
+      const existingTempSensor = this.accessory.getService(this.platform.Service.TemperatureSensor);
+      if (existingTempSensor) {
+        this.accessory.removeService(existingTempSensor);
+      }
+      this.temperatureService = this.zoneService; // Use HeaterCooler service for temp
+    }
 
     // Get or create the humidity sensor service
     this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
@@ -39,9 +64,13 @@ export class ZoneControllerAccessory {
     // Set accessory display name
     this.zoneService.setCharacteristic(this.platform.Characteristic.Name, accessory.displayName);
 
-    // Set up characteristics
-    this.setupSwitchCharacteristics();
-    this.setupTemperatureCharacteristics();
+    // Set up characteristics based on service type
+    if (this.platform.zonesAsHeaterCoolers) {
+      this.setupHeaterCoolerCharacteristics();
+    } else {
+      this.setupSwitchCharacteristics();
+      this.setupTemperatureCharacteristics();
+    }
     this.setupHumidityCharacteristics();
     this.setupBatteryCharacteristics();
 
@@ -53,6 +82,45 @@ export class ZoneControllerAccessory {
     this.zoneService.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setEnableState.bind(this))
       .onGet(this.getEnableState.bind(this));
+  }
+
+  private setupHeaterCoolerCharacteristics() {
+    // Active characteristic (zone enable/disable)
+    this.zoneService.getCharacteristic(this.platform.Characteristic.Active)
+      .onSet(this.setActiveState.bind(this))
+      .onGet(this.getActiveState.bind(this));
+
+    // Current heater/cooler state (from master)
+    this.zoneService.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
+      .onGet(this.getCurrentHeaterCoolerState.bind(this));
+
+    // Target heater/cooler state (from master, read-only for zones)
+    this.zoneService.getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
+      .onGet(this.getTargetHeaterCoolerState.bind(this));
+
+    // Current temperature
+    this.zoneService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+      .onGet(this.getCurrentTemperature.bind(this));
+
+    // Heating threshold temperature
+    this.zoneService.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
+      .setProps({
+        minValue: Math.max(10, this.zone.minHeatSetPoint),
+        maxValue: this.zone.maxHeatSetPoint,
+        minStep: 0.5,
+      })
+      .onGet(this.getHeatingThresholdTemperature.bind(this))
+      .onSet(this.setHeatingThresholdTemperature.bind(this));
+
+    // Cooling threshold temperature
+    this.zoneService.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
+      .setProps({
+        minValue: this.zone.minCoolSetPoint,
+        maxValue: this.zone.maxCoolSetPoint,
+        minStep: 0.5,
+      })
+      .onGet(this.getCoolingThresholdTemperature.bind(this))
+      .onSet(this.setCoolingThresholdTemperature.bind(this));
   }
 
   private setupTemperatureCharacteristics() {
@@ -75,8 +143,19 @@ export class ZoneControllerAccessory {
   }
 
   async updateCharacteristics() {
-    this.zoneService.updateCharacteristic(this.platform.Characteristic.On, this.getEnableState());
-    this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+    if (this.platform.zonesAsHeaterCoolers) {
+      // Update HeaterCooler characteristics
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.Active, this.getActiveState());
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getHeatingThresholdTemperature());
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getCoolingThresholdTemperature());
+    } else {
+      // Update Switch characteristics
+      this.zoneService.updateCharacteristic(this.platform.Characteristic.On, this.getEnableState());
+      this.temperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+    }
     this.humidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getCurrentHumidity());
     this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, this.getBatteryLevel());
     this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, this.getLowBatteryStatus());
@@ -141,5 +220,91 @@ export class ZoneControllerAccessory {
 
   getCurrentHumidity(): CharacteristicValue {
     return this.getHumidity();
+  }
+
+  // HeaterCooler-specific methods
+  async setActiveState(value: CharacteristicValue) {
+    this.checkHvacComms();
+    if (value as number === this.platform.Characteristic.Active.ACTIVE) {
+      await this.zone.setZoneEnable();
+    } else {
+      await this.zone.setZoneDisable();
+    }
+    this.platform.log.debug(`Set Zone ${this.zone.zoneName} Active State -> `, value);
+  }
+
+  getActiveState(): CharacteristicValue {
+    return this.zone.zoneEnabled
+      ? this.platform.Characteristic.Active.ACTIVE
+      : this.platform.Characteristic.Active.INACTIVE;
+  }
+
+  getCurrentHeaterCoolerState(): CharacteristicValue {
+    // Get compressor mode from master controller
+    const compressorMode = this.platform.hvacInstance.compressorMode;
+    let currentState: number;
+
+    switch (compressorMode) {
+      case CompressorMode.OFF:
+        currentState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+        break;
+      case CompressorMode.HEAT:
+        currentState = this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
+        break;
+      case CompressorMode.COOL:
+        currentState = this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
+        break;
+      default:
+        currentState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+    }
+
+    // If fan is not running, system is idle
+    if (!this.platform.hvacInstance.fanRunning) {
+      currentState = this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+    }
+
+    return currentState;
+  }
+
+  getTargetHeaterCoolerState(): CharacteristicValue {
+    // Get climate mode from master controller (zones follow master)
+    const climateMode = this.platform.hvacInstance.climateMode;
+    let targetState: number;
+
+    switch (climateMode) {
+      case ClimateMode.AUTO:
+        targetState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
+        break;
+      case ClimateMode.HEAT:
+        targetState = this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
+        break;
+      case ClimateMode.COOL:
+        targetState = this.platform.Characteristic.TargetHeaterCoolerState.COOL;
+        break;
+      default:
+        targetState = this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
+    }
+
+    return targetState;
+  }
+
+  getHeatingThresholdTemperature(): CharacteristicValue {
+    return this.zone.currentHeatingSetTemp;
+  }
+
+  async setHeatingThresholdTemperature(value: CharacteristicValue) {
+    this.checkHvacComms();
+    await this.zone.setHeatTemp(value as number);
+    this.platform.log.debug(`Set Zone ${this.zone.zoneName} Heating Temperature -> `, value);
+  }
+
+  getCoolingThresholdTemperature(): CharacteristicValue {
+    return this.zone.currentCoolingSetTemp;
+  }
+
+  async setCoolingThresholdTemperature(value: CharacteristicValue) {
+    this.checkHvacComms();
+    await this.zone.setCoolTemp(value as number);
+    this.platform.log.debug(`Set Zone ${this.zone.zoneName} Cooling Temperature -> `, value);
   }
 }
