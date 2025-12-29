@@ -16,11 +16,14 @@
       "strict": true,
       "esModuleInterop": true,
       "noImplicitAny": false,
+      "skipLibCheck": true,
     },
     "include": [
       "src/**/*"
     ],
     "exclude": [
-      "**/*.spec.ts"
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "**/__mocks__/**"
     ]
   }

@@ -1,5 +1,5 @@
 import { HvacUnit } from './hvac';
-import { CommandResult, PowerState, ClimateMode, FanMode, CompressorMode } from './types';
+import { CommandResult, PowerState, ClimateMode, FanMode } from './types';
 import { mockLogger } from './__mocks__/mockHomebridge';
 import { createMockHvacStatus, createMockZoneStatus } from './__mocks__/mockQueApi';
 
