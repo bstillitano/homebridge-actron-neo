@@ -11,7 +11,7 @@ export class ContinuousFanModeAccessory {
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Actron')
-      .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Zone Controller');
+      .setCharacteristic(this.platform.Characteristic.Model, this.platform.hvacInstance.type + ' Controller');
 
     // Get or create the switch service
     this.modeService = this.accessory.getService(this.platform.Service.Switch)
@@ -45,16 +45,16 @@ export class ContinuousFanModeAccessory {
   }
 
   getEnableState(): CharacteristicValue {
-    const continuousMode = this.platform.hvacInstance.continuousFanMode;
+    const continuousMode = this.platform.hvacInstance.continuousFanMode ? 1 : 0;
     return continuousMode;
   }
 
   async setEnableState(value: CharacteristicValue) {
     this.checkHvacComms();
     if (value) {
-      this.platform.hvacInstance.setContinuousFanModeOn();
+      await this.platform.hvacInstance.setContinuousFanModeOn();
     } else {
-      this.platform.hvacInstance.setContinuousFanModeOff();
+      await this.platform.hvacInstance.setContinuousFanModeOff();
     }
     this.platform.log.debug('Set Continuous Fan Mode -> ', value);
   }
