@@ -14,6 +14,7 @@ Control your ActronAir Neo system with Apple HomeKit using Homebridge.
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Controlling Zone Temperature Settings](#controlling-zone-temperature-settings)
+- [Zones as Heater/Cooler Accessories](#zones-as-heatercooler-accessories)
 - [Error Handling](#error-handling)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -64,6 +65,7 @@ If you are not using the Homebridge config UI, you can add the following to your
         "clientName": "homebridgeNeo",
         "zonesFollowMaster": true,
         "zonesPushMaster": true,
+        "zonesAsHeaterCoolers": false,
         "refreshInterval": 60,
         "deviceSerial": "",
         "maxCoolingTemp": 32,
@@ -79,6 +81,23 @@ If you are not using the Homebridge config UI, you can add the following to your
 When modifying the zone temperature settings, the Neo system only allows you to set a temperature that is within -2 degrees (Heating) or +2 degrees (Cooling) of the Master Control temperature. With version 1.1.0, the default behaviour has been modified to automatically adjust the master temp if required when modifying a zone temp.
 
 Setting `zonesPushMaster` to false will revert to the prior behaviour of constraining zones to the allowable max/min based on the current master setting. If you set a zone temperature that is outside of the +/- 2 degree range from the master, the plugin will translate the set temp to the allowable range.
+
+## Zones as Heater/Cooler Accessories
+
+By default, each zone appears as a simple on/off switch in HomeKit. If you want more granular control over zone temperatures, you can enable the `zonesAsHeaterCoolers` option.
+
+When enabled, each zone will appear as a full Heater/Cooler accessory in HomeKit with:
+- Active state (on/off)
+- Current temperature reading
+- Heating threshold temperature (adjustable)
+- Cooling threshold temperature (adjustable)
+- Current heating/cooling state (inherited from master)
+
+To enable this feature, set `zonesAsHeaterCoolers` to `true` in your configuration.
+
+> **Important:** This feature requires your ActronAir Neo system to support zone-based temperature control. Not all units have this capability. If your system does not support per-zone temperature setpoints, enabling this option may result in errors or unexpected behaviour. If you encounter issues, set `zonesAsHeaterCoolers` back to `false`.
+
+Note that zones cannot independently change the climate mode (heat/cool/auto) - they follow the master controller's mode. Only the temperature setpoints can be adjusted per-zone.
 
 ## Error Handling
 
