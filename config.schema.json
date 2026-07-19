@@ -65,6 +65,13 @@
         "required": false,
         "default": 500
       },
+      "stateSyncGraceMs": {
+        "title": "State Sync Grace Window (ms)",
+        "description": "After you change a setting, how long to keep trusting your value over status refreshes from the Neo cloud, which can report the old value for a while (eventual consistency). The plugin stops waiting as soon as the cloud agrees, or when this window lapses, whichever comes first. Increase if values still briefly bounce back; decrease to pick up changes made elsewhere (e.g. the wall controller) sooner. Default 90000 (90 seconds).",
+        "type": "integer",
+        "required": false,
+        "default": 90000
+      },
       "debug": {
         "title": "Enable Debug Logging",
         "description": "Surfaces this plugin's detailed debug logs (command queueing, coalescing, API requests/responses) in the Homebridge log without needing to run all of Homebridge in debug mode. Useful for troubleshooting; leave off for normal use.",

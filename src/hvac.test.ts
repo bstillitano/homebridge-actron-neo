@@ -262,6 +262,55 @@ describe('HvacUnit', () => {
     });
   });
 
+  describe('optimistic write reconciliation (eventual consistency guard)', () => {
+    beforeEach(() => {
+      mockApiInterface.runCommand.mockResolvedValue(CommandResult.SUCCESS);
+    });
+
+    it('keeps a just-set setpoint when a status refresh still reports the old value', async () => {
+      await hvac.setCoolTemp(24);
+      expect(hvac.masterCoolingSetTemp).toBe(24);
+
+      // Cloud is eventually consistent and still reports the previous setpoint.
+      mockApiInterface.getStatus.mockResolvedValue(createMockHvacStatus({ masterCoolingSetTemp: 23 }));
+      await hvac.getStatus();
+
+      expect(hvac.masterCoolingSetTemp).toBe(24); // not bounced back to 23
+    });
+
+    it('accepts the cloud value once it agrees, then honours later external changes', async () => {
+      await hvac.setCoolTemp(24);
+
+      // Cloud catches up to our value -> guard clears.
+      mockApiInterface.getStatus.mockResolvedValue(createMockHvacStatus({ masterCoolingSetTemp: 24 }));
+      await hvac.getStatus();
+      expect(hvac.masterCoolingSetTemp).toBe(24);
+
+      // A genuine later change (e.g. from the wall controller) is now honoured.
+      mockApiInterface.getStatus.mockResolvedValue(createMockHvacStatus({ masterCoolingSetTemp: 21 }));
+      await hvac.getStatus();
+      expect(hvac.masterCoolingSetTemp).toBe(21);
+    });
+
+    it('takes the cloud value when there was no recent local write', async () => {
+      mockApiInterface.getStatus.mockResolvedValue(createMockHvacStatus({ masterCoolingSetTemp: 19 }));
+      await hvac.getStatus();
+      expect(hvac.masterCoolingSetTemp).toBe(19);
+    });
+
+    it('keeps power state set locally until the cloud reflects it (no brief flip to off)', async () => {
+      hvac.powerState = PowerState.OFF;
+      await hvac.setPowerStateOn();
+      expect(hvac.powerState).toBe(PowerState.ON);
+
+      // Cloud still reports OFF right after turning on.
+      mockApiInterface.getStatus.mockResolvedValue(createMockHvacStatus({ powerState: PowerState.OFF }));
+      await hvac.getStatus();
+
+      expect(hvac.powerState).toBe(PowerState.ON);
+    });
+  });
+
   describe('Away mode', () => {
     beforeEach(() => {
       mockApiInterface.runCommand.mockResolvedValue(CommandResult.SUCCESS);

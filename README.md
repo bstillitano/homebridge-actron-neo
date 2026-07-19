@@ -68,6 +68,7 @@ If you are not using the Homebridge config UI, you can add the following to your
         "zonesAsHeaterCoolers": false,
         "refreshInterval": 60,
         "commandDebounceMs": 500,
+        "stateSyncGraceMs": 90000,
         "debug": false,
         "deviceSerial": "",
         "maxCoolingTemp": 32,
@@ -83,6 +84,14 @@ If you are not using the Homebridge config UI, you can add the following to your
 When you make several changes in quick succession — dragging a temperature slider, toggling several zones on/off, or turning the unit on/off right after a zone change — the plugin waits briefly for you to finish and then sends a single, consolidated command. This prevents the changes from racing each other on the Neo cloud, which previously could leave only the last change applied or land a temperature somewhere between the start and target value.
 
 `commandDebounceMs` (default `500`) controls how long, in milliseconds, the plugin waits after your last change before sending. Lower values feel snappier; higher values coalesce more aggressively for very jittery bursts. Commands are also serialised, so they always apply to the unit in the order you made them.
+
+## State Sync Grace Window
+
+The Neo cloud's status endpoint is eventually consistent: for a short time after you change a setting, it can keep reporting the old value. Without protection a status refresh landing in that window would overwrite the value you just set, making it briefly bounce back to the old value (or the unit flick "off" right after you turn it on) until the cloud catches up.
+
+To prevent this, after you change a setting the plugin keeps trusting your value over status refreshes until the cloud reports the same value back, or until the grace window lapses, whichever comes first. If the cloud never agrees (for example the unit clamped or rejected the change), the guard expires and the next refresh is accepted as-is, so the display always self-heals.
+
+`stateSyncGraceMs` (default `90000`, i.e. 90 seconds) sets this window. Increase it if you still see values briefly bounce back after setting them. Decrease it if you want changes made elsewhere (such as on the physical wall controller) to be picked up sooner while you are also using HomeKit.
 
 ## Debug Logging
 
@@ -113,7 +122,17 @@ Note that zones cannot independently change the climate mode (heat/cool/auto) - 
 
 ## Error Handling
 
-[Your existing error handling information here]
+The plugin is built to degrade gracefully. When something goes wrong it favours keeping Homebridge running on the last known good state and recovering automatically once the problem clears, rather than crashing or leaving accessories in a broken state. The main behaviours are:
+
+- **Authentication and tokens.** Bearer tokens are refreshed automatically. If a request returns `401 Unauthorized`, the plugin fetches a fresh token and retries (a few times, with a short delay between attempts). If authentication keeps failing, or a `400` indicates a credential problem, the cached tokens are cleared so a Homebridge restart can re-pair cleanly. Tokens are persisted to disk, so a restart does not force a full re-login when they are still valid.
+- **Transient server errors (5xx) and gateway timeouts.** These are retried a few times with a delay. If they still fail, the plugin returns a handled error and continues using cached state instead of throwing, since these are usually temporary problems on the Neo service.
+- **Network outages.** Common connectivity errors (host unreachable, timeouts, DNS failures, and similar) are caught and logged as warnings. The plugin keeps serving the last known state and resumes normally once the connection returns.
+- **Invalid or incomplete API data.** Every response is validated against an expected schema. If the cloud returns data that fails validation, the plugin logs a warning and keeps the previous cached values rather than applying bad data.
+- **Command failures.** Every command reports whether it succeeded. If a command is rejected, the plugin re-reads the true state from the cloud and pushes that back to HomeKit so the display resyncs with reality. If the cloud is unreachable when sending, it logs a warning and keeps the last known state. Commands are serialised, so one failed send never blocks the ones after it.
+- **Master controller offline.** If the master controller loses its internet/WiFi connection, accessories keep showing their last known values. Attempts to change a setting while it is offline surface a communication error in the Home app instead of silently doing nothing.
+- **Eventual consistency.** Immediately after a change, the Neo cloud can briefly keep reporting the old value. The plugin trusts your change until the cloud agrees or the grace window lapses. See [State Sync Grace Window](#state-sync-grace-window) for details and the `stateSyncGraceMs` option.
+
+If you want to see exactly what the plugin is doing while diagnosing an issue, enable [Debug Logging](#debug-logging). The [Troubleshooting](#troubleshooting) section below lists the most common specific errors and what to do about them.
 
 ## Troubleshooting
 
@@ -131,7 +150,7 @@ Here are some common issues and their solutions:
 
 6. **Schema Validation Errors**: These occur when the API returns incomplete data. The plugin will attempt to continue operation using cached data.
 
-For more detailed information on error handling, please refer to the [Error Handling](#error-handling) section.
+For the general approach behind these behaviours, see the [Error Handling](#error-handling) section above. Enabling [Debug Logging](#debug-logging) can help pin down intermittent issues.
 
 ## Contributing
 
