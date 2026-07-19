@@ -10,11 +10,16 @@ import { HvacUnit } from './hvac';
 import { HvacZone } from './hvacZone';
 import { DiscoveredDevices } from './types';
 import { HvacSetting } from './hvacSetting';
+import { createPluginLogger } from './logging';
 
 export class ActronQuePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly accessories: PlatformAccessory[] = [];
+  // Verbose logging (debug messages surfaced at info level) is opt-in via the `debug`
+  // config option. `log` is the plugin-wide logger, wrapped when debug is enabled.
+  public readonly log: Logger;
+  readonly debugLogging: boolean = false;
 
   // Attributes required for initialisation of ActronQue platform
   private readonly clientName: string;
@@ -34,10 +39,17 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
   hvacInstance!: HvacUnit;
 
   constructor(
-    public readonly log: Logger,
+    log: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    // Wrap the logger first so every subsequent debug message respects the option.
+    this.debugLogging = config['debug'] === true;
+    this.log = createPluginLogger(log, this.debugLogging);
+    if (this.debugLogging) {
+      this.log.info('Debug logging enabled');
+    }
+
     this.clientName = config['clientName'];
     this.username = config['username'];
     this.password = config['password'];
@@ -104,7 +116,7 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     this.log.debug('Finished initializing platform:', this.config.name);
 
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
+      this.log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });

@@ -39,6 +39,7 @@ export default class QueApi {
 
   // Collapses bursts of same-target changes (slider drags, rapid toggles) into one send.
   private readonly debouncer: Debouncer;
+  private readonly commandDebounceMs: number;
 
   constructor(
     private readonly username: string,
@@ -51,7 +52,9 @@ export default class QueApi {
   ) {
     this.apiClientId = '';
     this.actronSerial = actronSerial;
+    this.commandDebounceMs = commandDebounceMs;
     this.debouncer = new Debouncer(commandDebounceMs);
+    this.log.debug(`QueApi initialised with command debounce window of ${commandDebounceMs}ms`);
 
     // check for existing client ID for given client name. If client name file does not exist then create one.
     // If client is new name then create a new unique ID.
@@ -380,6 +383,8 @@ export default class QueApi {
     // the user's not-yet-sent intent.
     if (!this.debouncer.isPending('zones')) {
       this.enabledZones = [...(zoneEnabledState as boolean[])];
+    } else {
+      this.log.debug('Skipping EnabledZones reconcile from cloud; a zone toggle is still pending');
     }
 
     // zone index number is based on the order in the returned array, we add the zone index to the
@@ -520,13 +525,20 @@ export default class QueApi {
     // scheduled, so a burst of toggles across zones merges into one command.
     if (commandType === validApiCommands.ZONE_ENABLE) {
       this.enabledZones[zoneIndex] = true;
+      this.log.debug(`Zone ${zoneIndex} enable staged; desired EnabledZones -> ${JSON.stringify(this.enabledZones)}`);
     } else if (commandType === validApiCommands.ZONE_DISABLE) {
       this.enabledZones[zoneIndex] = false;
+      this.log.debug(`Zone ${zoneIndex} disable staged; desired EnabledZones -> ${JSON.stringify(this.enabledZones)}`);
     }
 
     // Debounce/coalesce by target, then send through the serial queue. The returned
     // promise resolves with the eventual command result for every coalesced caller.
     const key = this.commandKey(commandType, zoneIndex);
+    if (this.debouncer.isPending(key)) {
+      this.log.debug(`Coalescing ${commandType} into pending "${key}" command`);
+    } else {
+      this.log.debug(`Queued ${commandType} under "${key}", sending in ~${this.commandDebounceMs}ms`);
+    }
     return this.debouncer.schedule(key, () =>
       this.enqueue(() => this.dispatchCommand(this.buildCommandBody(commandType, coolTemp, heatTemp, zoneIndex))),
     );

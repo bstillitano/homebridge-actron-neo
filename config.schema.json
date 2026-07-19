@@ -65,6 +65,13 @@
         "required": false,
         "default": 500
       },
+      "debug": {
+        "title": "Enable Debug Logging",
+        "description": "Surfaces this plugin's detailed debug logs (command queueing, coalescing, API requests/responses) in the Homebridge log without needing to run all of Homebridge in debug mode. Useful for troubleshooting; leave off for normal use.",
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
       "deviceSerial": {
         "title": "Neo System Serial Number",
         "description": "Only required if you have multiple systems in your Neo cloud account.",

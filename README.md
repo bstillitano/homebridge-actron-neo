@@ -68,6 +68,7 @@ If you are not using the Homebridge config UI, you can add the following to your
         "zonesAsHeaterCoolers": false,
         "refreshInterval": 60,
         "commandDebounceMs": 500,
+        "debug": false,
         "deviceSerial": "",
         "maxCoolingTemp": 32,
         "minCoolingTemp": 20,
@@ -82,6 +83,10 @@ If you are not using the Homebridge config UI, you can add the following to your
 When you make several changes in quick succession — dragging a temperature slider, toggling several zones on/off, or turning the unit on/off right after a zone change — the plugin waits briefly for you to finish and then sends a single, consolidated command. This prevents the changes from racing each other on the Neo cloud, which previously could leave only the last change applied or land a temperature somewhere between the start and target value.
 
 `commandDebounceMs` (default `500`) controls how long, in milliseconds, the plugin waits after your last change before sending. Lower values feel snappier; higher values coalesce more aggressively for very jittery bursts. Commands are also serialised, so they always apply to the unit in the order you made them.
+
+## Debug Logging
+
+Set `debug` to `true` to surface the plugin's detailed debug logs — command queueing and coalescing, API requests and responses, and state reconciliation — directly in the Homebridge log. This works without running the whole Homebridge instance in debug mode (`homebridge -D`), so you can troubleshoot just this plugin. Leave it off (`false`, the default) for normal use.
 
 ## Controlling Zone Temperature Settings
 
