@@ -26,6 +26,7 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
   readonly zonesAsHeaterCoolers: boolean = false;
   readonly hardRefreshInterval: number = 60000;
   readonly softRefreshInterval: number = 5000;
+  readonly commandDebounceMs: number = 500;
   readonly maxCoolingTemp: number = 32;
   readonly minCoolingTemp: number = 20;
   readonly maxHeatingTemp: number = 26;
@@ -59,6 +60,10 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     if (config['refreshInterval']) {
       this.hardRefreshInterval = config['refreshInterval'] * 1000;
       this.log.debug('Auto refresh interval set to seconds', this.hardRefreshInterval / 1000);
+    }
+    if (config['commandDebounceMs'] !== undefined) {
+      this.commandDebounceMs = config['commandDebounceMs'];
+      this.log.debug('Command debounce window set to ms', this.commandDebounceMs);
     }
     if (config['maxCoolingTemp']) {
       this.maxCoolingTemp = config['maxCoolingTemp'];
@@ -114,7 +119,7 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     try {
       // Instantiate an instance of HvacUnit and connect the actronQueApi
       this.hvacInstance = new HvacUnit(this.clientName, this.log, this.api.user.storagePath(),
-        this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers);
+        this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers, this.commandDebounceMs);
       let hvacSerial = '';
       hvacSerial = await this.hvacInstance.actronQueApi(this.username, this.password, this.userProvidedSerialNo);
       // Make sure we have hvac master and zone data before adding devices

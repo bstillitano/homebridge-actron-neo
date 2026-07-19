@@ -1,4 +1,5 @@
 import QueApi from './queApi';
+import { validApiCommands } from './types';
 import { mockLogger } from './__mocks__/mockHomebridge';
 
 // Mock node-fetch
@@ -222,6 +223,94 @@ describe('QueApi', () => {
       await expect(
         api.manageApiRequest({ headers: { set: jest.fn() } } as never),
       ).rejects.toThrow('unhandled error');
+    });
+  });
+
+  describe('command pipeline', () => {
+    const MockRequest = jest.requireMock('node-fetch').Request;
+    // The request options passed to `new Request(url, options)` for the Nth send, in order.
+    const sentOptions = (index: number) => MockRequest.mock.calls[index][1];
+    const sentBody = (index: number) => JSON.parse(sentOptions(index).body).command;
+
+    const seedZones = (zones: boolean[]) => {
+      (api as unknown as { enabledZones: boolean[] }).enabledZones = zones;
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // Every POST acks successfully.
+      mockFetch.mockResolvedValue(createMockResponse(200, { type: 'ack' }));
+      // Fast debounce window for tests.
+      api = new QueApi('test@example.com', 'password123', 'test-client', mockLogger, '/test/storage', 'SERIAL123', 50);
+      // Only count Request constructions from here on (the constructor above builds none).
+      MockRequest.mockClear();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('coalesces a rapid multi-zone toggle into a single command carrying every change', async () => {
+      seedZones([false, false, false]);
+
+      const p0 = api.runCommand(validApiCommands.ZONE_ENABLE, 0, 0, 0);
+      const p1 = api.runCommand(validApiCommands.ZONE_ENABLE, 0, 0, 1);
+      const p2 = api.runCommand(validApiCommands.ZONE_ENABLE, 0, 0, 2);
+
+      await jest.advanceTimersByTimeAsync(50);
+      await Promise.all([p0, p1, p2]);
+
+      // One POST, not three, and it contains all three toggles merged together.
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(sentBody(0)['UserAirconSettings.EnabledZones']).toEqual([true, true, true]);
+    });
+
+    it('does not re-read cloud zone state per toggle (no GET before the send)', async () => {
+      seedZones([false, false, false]);
+
+      const p = api.runCommand(validApiCommands.ZONE_ENABLE, 0, 0, 1);
+      await jest.advanceTimersByTimeAsync(50);
+      await p;
+
+      // Exactly one request total: the POST. The old code issued a GET per command first.
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(MockRequest.mock.calls).toHaveLength(1);
+      expect(sentOptions(0).method).toBe('POST');
+    });
+
+    it('sends only the final value when a setpoint is changed rapidly', async () => {
+      const p0 = api.runCommand(validApiCommands.COOL_SET_POINT, 21, 0);
+      const p1 = api.runCommand(validApiCommands.COOL_SET_POINT, 22, 0);
+      const p2 = api.runCommand(validApiCommands.COOL_SET_POINT, 23, 0);
+
+      await jest.advanceTimersByTimeAsync(50);
+      await Promise.all([p0, p1, p2]);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(sentBody(0)['UserAirconSettings.TemperatureSetpoint_Cool_oC']).toBe(23);
+    });
+
+    it('serialises distinct commands in the order they were issued', async () => {
+      const pZone = api.runCommand(validApiCommands.ON);
+      const pTemp = api.runCommand(validApiCommands.COOL_SET_POINT, 24, 0);
+
+      await jest.advanceTimersByTimeAsync(50);
+      await Promise.all([pZone, pTemp]);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      // Power command was issued first, so it is sent first.
+      expect(sentBody(0)['UserAirconSettings.isOn']).toBe(true);
+      expect(sentBody(1)['UserAirconSettings.TemperatureSetpoint_Cool_oC']).toBe(24);
+    });
+
+    it('resolves every coalesced caller with the command result', async () => {
+      const p0 = api.runCommand(validApiCommands.COOL_SET_POINT, 21, 0);
+      const p1 = api.runCommand(validApiCommands.COOL_SET_POINT, 22, 0);
+
+      await jest.advanceTimersByTimeAsync(50);
+
+      await expect(p0).resolves.toBe('SUCCESS');
+      await expect(p1).resolves.toBe('SUCCESS');
     });
   });
 
