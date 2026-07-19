@@ -185,18 +185,13 @@ export const queApiCommands = {
       },
     }),
 
-  ZONE_ENABLE: (_coolTemp: number, _heatTemp: number, zoneIndex: number, currentZoneStatus: boolean[]) => (
+  // Sends the complete desired zone-enabled array in a single command. Zone toggles are
+  // coalesced against a locally-tracked array (see QueApi) rather than read-modify-writing
+  // cloud state per toggle, which previously let rapid toggles clobber each other.
+  SET_ENABLED_ZONES: (zones: boolean[]) => (
     {
       'command': {
-        ['UserAirconSettings.EnabledZones']: modifiedZoneStatuses(true, zoneIndex, currentZoneStatus),
-        'type': 'set-settings',
-      },
-    }),
-
-  ZONE_DISABLE: (_coolTemp: number, _heatTemp: number, zoneIndex: number, currentZoneStatus: boolean[]) => (
-    {
-      'command': {
-        ['UserAirconSettings.EnabledZones']: modifiedZoneStatuses(false, zoneIndex, currentZoneStatus),
+        ['UserAirconSettings.EnabledZones']: [...zones],
         'type': 'set-settings',
       },
     }),
@@ -217,15 +212,3 @@ export const queApiCommands = {
       },
     }),
 };
-
-//#region "Helper Functions"
-
-function modifiedZoneStatuses(status: boolean,
-  zoneIndex: number,
-  currentZoneStatus: boolean[]) { // read-only property with getter function (this is not the same thing as a "function-property")
-  const modifiedValues = [...currentZoneStatus];
-  modifiedValues[zoneIndex] = status;
-  return modifiedValues;
-}
-
-//#endregion "Helper Functions"

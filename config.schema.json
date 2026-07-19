@@ -58,6 +58,13 @@
         "required": false,
         "default": 60
       },
+      "commandDebounceMs": {
+        "title": "Command Debounce Window (ms)",
+        "description": "How long to wait after your last change before sending it to the AC. Rapid changes (dragging a temperature slider, toggling several zones) are coalesced into a single command so they all apply. Lower feels snappier; higher coalesces more aggressively. Default 500.",
+        "type": "integer",
+        "required": false,
+        "default": 500
+      },
       "deviceSerial": {
         "title": "Neo System Serial Number",
         "description": "Only required if you have multiple systems in your Neo cloud account.",

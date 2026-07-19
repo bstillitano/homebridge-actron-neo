@@ -5,6 +5,11 @@ import { Schema, validate } from 'jtd';
 import { apiToken, tokenCollection, PowerState, validApiCommands, ZoneStatus, HvacStatus, CommandResult, ApiAccessError } from './types';
 import { AccessTokenSchema, BearerTokenSchema, SystemStatusSchema, AcSystemsSchema, CommandResponseSchema} from './schema';
 import { queApiCommands } from './queCommands';
+import { Debouncer } from './debouncer';
+
+// Builder signature shared by all non-zone-toggle commands in queApiCommands. Zone
+// enable/disable are handled separately via SET_ENABLED_ZONES against local state.
+type CommandBuilder = (coolTemp: number, heatTemp: number, zoneIndex: number, zones: boolean[]) => { command: object };
 
 // Defines an api interface for the Que cloud service
 export default class QueApi {
@@ -23,6 +28,18 @@ export default class QueApi {
   refreshToken: apiToken;
   bearerToken: apiToken;
 
+  // Locally-tracked authoritative copy of UserAirconSettings.EnabledZones. Seeded and
+  // reconciled by getStatus(), mutated by zone toggles. Building zone commands from this
+  // rather than re-reading (eventually-consistent) cloud state per toggle is what stops
+  // rapid zone toggles from clobbering each other.
+  private enabledZones: boolean[] = [];
+
+  // Serialises all outgoing commands so only one is in flight at a time, in order.
+  private commandChain: Promise<unknown> = Promise.resolve();
+
+  // Collapses bursts of same-target changes (slider drags, rapid toggles) into one send.
+  private readonly debouncer: Debouncer;
+
   constructor(
     private readonly username: string,
     private readonly password: string,
@@ -30,9 +47,11 @@ export default class QueApi {
     private readonly log: Logger,
     private readonly hbUserStoragePath: string,
     actronSerial = '',
+    commandDebounceMs = 500,
   ) {
     this.apiClientId = '';
     this.actronSerial = actronSerial;
+    this.debouncer = new Debouncer(commandDebounceMs);
 
     // check for existing client ID for given client name. If client name file does not exist then create one.
     // If client is new name then create a new unique ID.
@@ -356,6 +375,13 @@ export default class QueApi {
     const zoneEnabledState: object = response['lastKnownState']['UserAirconSettings']['EnabledZones'];
     const zoneCurrentStatus: ZoneStatus[] = [];
 
+    // Reconcile the local zone array from the cloud, but not while a zone toggle is still
+    // pending its debounced send - otherwise a refresh landing mid-toggle would discard
+    // the user's not-yet-sent intent.
+    if (!this.debouncer.isPending('zones')) {
+      this.enabledZones = [...(zoneEnabledState as boolean[])];
+    }
+
     // zone index number is based on the order in the returned array, we add the zone index to the
     // results as we need this to send commands later. The zone data is enclosed behind the serial number
     // we are also capturing the serial number of the sensor to be used later in the homebridge UUID generation
@@ -420,41 +446,95 @@ export default class QueApi {
     return currentStatus;
   }
 
-  async getZoneStatuses(): Promise<boolean[]> {
-    // TODO - Shouldn't need to make this call, data should be available already beacuse we've made the `getStatus` call.
-    // retrieves the full status of the aircon unit and all zones
-    const preparedRequest = new Request (this.queryUrl, {
-      method: 'GET',
-      headers: {'Authorization': `Bearer ${this.bearerToken.token}`, 'Accept': 'application/json'},
-    });
-
-    let response: object = {};
-    let valid_response = false;
-    try {
-      response = await this.manageApiRequest(preparedRequest);
-      valid_response = await this.validateSchema(SystemStatusSchema, response);
-    } catch (error) {
-      if (error instanceof Error) {
-        this.log.error(error.message);
-        // decided not to throw error in this case to see if we can silently recover
-      }
+  // Groups commands that target the same setting under a shared debounce key so a burst
+  // collapses to a single send. ON/OFF share a key (so flip-flops settle on the last),
+  // mode/fan variants share a key, and all zone enable/disable share 'zones' so toggles
+  // across zones coalesce into one array.
+  private commandKey(commandType: validApiCommands, zoneIndex: number): string {
+    switch (commandType) {
+      case validApiCommands.ON:
+      case validApiCommands.OFF:
+        return 'power';
+      case validApiCommands.CLIMATE_MODE_AUTO:
+      case validApiCommands.CLIMATE_MODE_COOL:
+      case validApiCommands.CLIMATE_MODE_FAN:
+      case validApiCommands.CLIMATE_MODE_HEAT:
+        return 'climateMode';
+      case validApiCommands.FAN_MODE_AUTO:
+      case validApiCommands.FAN_MODE_AUTO_CONT:
+      case validApiCommands.FAN_MODE_LOW:
+      case validApiCommands.FAN_MODE_LOW_CONT:
+      case validApiCommands.FAN_MODE_MEDIUM:
+      case validApiCommands.FAN_MODE_MEDIUM_CONT:
+      case validApiCommands.FAN_MODE_HIGH:
+      case validApiCommands.FAN_MODE_HIGH_CONT:
+        return 'fanMode';
+      case validApiCommands.COOL_SET_POINT:
+        return 'master:cool';
+      case validApiCommands.HEAT_SET_POINT:
+        return 'master:heat';
+      case validApiCommands.HEAT_COOL_SET_POINT:
+        return 'master:heatcool';
+      case validApiCommands.AWAY_MODE_ON:
+      case validApiCommands.AWAY_MODE_OFF:
+        return 'awayMode';
+      case validApiCommands.QUIET_MODE_ON:
+      case validApiCommands.QUIET_MODE_OFF:
+        return 'quietMode';
+      case validApiCommands.CONTROL_ALL_ZONES_ON:
+      case validApiCommands.CONTROL_ALL_ZONES_OFF:
+        return 'controlAllZones';
+      case validApiCommands.ZONE_ENABLE:
+      case validApiCommands.ZONE_DISABLE:
+        return 'zones';
+      case validApiCommands.ZONE_COOL_SET_POINT:
+        return `zone:${zoneIndex}:cool`;
+      case validApiCommands.ZONE_HEAT_SET_POINT:
+        return `zone:${zoneIndex}:heat`;
+      default:
+        return String(commandType);
     }
+  }
 
-    if ('apiAccessError' in response || !valid_response) {
-      // TODO: - Return meaningful error
-      this.log.error('Unable to retrieve zone status information');
-      return [];
+  // Builds the wire command. Evaluated at flush time, so zone commands snapshot the
+  // fully-merged local enabledZones array.
+  private buildCommandBody(commandType: validApiCommands, coolTemp: number, heatTemp: number, zoneIndex: number): { command: object } {
+    if (commandType === validApiCommands.ZONE_ENABLE || commandType === validApiCommands.ZONE_DISABLE) {
+      return queApiCommands.SET_ENABLED_ZONES(this.enabledZones);
     }
+    const builder = (queApiCommands as unknown as Record<string, CommandBuilder>)[commandType];
+    return builder(coolTemp, heatTemp, zoneIndex, this.enabledZones);
+  }
 
-    return response['lastKnownState']['UserAirconSettings']['EnabledZones'];
+  // Serialises tasks so only one runs at a time, in enqueue order. A task's failure never
+  // wedges the chain for later tasks.
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.commandChain.then(() => task(), () => task());
+    this.commandChain = run.then(() => undefined, () => undefined);
+    return run;
   }
 
   // defaulting zoneIndex here to 255 as this should be an invalid value, but maybe i should do something different
   async runCommand(commandType: validApiCommands, coolTemp = 20.0, heatTemp = 20.0, zoneIndex = 255): Promise<CommandResult> {
-    // this function does what it says on the tin. Run the command issued to the system.
-    // all possible commands are stored in 'queCommands'
-    const currentStatus = await this.getZoneStatuses();
-    const command = queApiCommands[commandType](coolTemp, heatTemp, zoneIndex, currentStatus);
+    // Apply zone enable/disable intent to the local array immediately, before the send is
+    // scheduled, so a burst of toggles across zones merges into one command.
+    if (commandType === validApiCommands.ZONE_ENABLE) {
+      this.enabledZones[zoneIndex] = true;
+    } else if (commandType === validApiCommands.ZONE_DISABLE) {
+      this.enabledZones[zoneIndex] = false;
+    }
+
+    // Debounce/coalesce by target, then send through the serial queue. The returned
+    // promise resolves with the eventual command result for every coalesced caller.
+    const key = this.commandKey(commandType, zoneIndex);
+    return this.debouncer.schedule(key, () =>
+      this.enqueue(() => this.dispatchCommand(this.buildCommandBody(commandType, coolTemp, heatTemp, zoneIndex))),
+    );
+  }
+
+  // Performs the actual POST for an already-built command. Never throws: transport/parse
+  // problems are logged and mapped to a CommandResult so the serial chain stays healthy.
+  private async dispatchCommand(command: { command: object }): Promise<CommandResult> {
     this.log.debug(`attempting to send command:\n ${JSON.stringify(command)}`);
     const preparedRequest = new Request (this.commandUrl, {
       method: 'POST',
@@ -485,7 +565,7 @@ export default class QueApi {
       this.log.debug(`Command successful, 'ack' received from Actron Cloud:\n ${JSON.stringify(response['value'])}`);
       return CommandResult.SUCCESS;
     } else {
-      this.log.debug(`Command failed, NO 'ack' received from Actron Cloud:\n 
+      this.log.debug(`Command failed, NO 'ack' received from Actron Cloud:\n
       Command attempted: ${JSON.stringify(command)}\n
       API response: ${JSON.stringify(response)}`);
       return CommandResult.FAILURE;

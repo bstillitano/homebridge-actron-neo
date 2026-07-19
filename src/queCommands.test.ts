@@ -138,28 +138,16 @@ describe('queApiCommands', () => {
   });
 
   describe('Zone commands', () => {
-    it('ZONE_ENABLE should enable the specified zone', () => {
-      const currentZones = [true, false, false];
-      const result = queApiCommands.ZONE_ENABLE(0, 0, 1, currentZones);
+    it('SET_ENABLED_ZONES should send the full desired zone array', () => {
+      const result = queApiCommands.SET_ENABLED_ZONES([true, true, false]);
       expect(result.command['UserAirconSettings.EnabledZones']).toEqual([true, true, false]);
     });
 
-    it('ZONE_ENABLE should not mutate the original array', () => {
-      const currentZones = [true, false, false];
-      queApiCommands.ZONE_ENABLE(0, 0, 1, currentZones);
-      expect(currentZones).toEqual([true, false, false]);
-    });
-
-    it('ZONE_DISABLE should disable the specified zone', () => {
-      const currentZones = [true, true, true];
-      const result = queApiCommands.ZONE_DISABLE(0, 0, 1, currentZones);
-      expect(result.command['UserAirconSettings.EnabledZones']).toEqual([true, false, true]);
-    });
-
-    it('ZONE_DISABLE should not mutate the original array', () => {
-      const currentZones = [true, true, true];
-      queApiCommands.ZONE_DISABLE(0, 0, 1, currentZones);
-      expect(currentZones).toEqual([true, true, true]);
+    it('SET_ENABLED_ZONES should copy the array rather than reference the input', () => {
+      const zones = [true, false, false];
+      const result = queApiCommands.SET_ENABLED_ZONES(zones);
+      zones[1] = true;
+      expect(result.command['UserAirconSettings.EnabledZones']).toEqual([true, false, false]);
     });
 
     it('ZONE_COOL_SET_POINT should set zone cooling temperature', () => {
@@ -183,7 +171,7 @@ describe('queApiCommands', () => {
         queApiCommands.COOL_SET_POINT(24, 20),
         queApiCommands.AWAY_MODE_ON(),
         queApiCommands.QUIET_MODE_ON(),
-        queApiCommands.ZONE_ENABLE(0, 0, 0, [false]),
+        queApiCommands.SET_ENABLED_ZONES([false]),
       ];
 
       commands.forEach(cmd => {
