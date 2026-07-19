@@ -195,8 +195,10 @@ export class MasterControllerAccessory {
 
   async setHeatingThresholdTemperature(value: CharacteristicValue) {
     this.checkHvacComms();
+    // Note: no getStatus() here. setHeatTemp already updates local state, and the cloud's
+    // status endpoint lags behind the command, so refreshing now would clobber the value we
+    // just set with a stale reading. The periodic refresh reconciles once the cloud catches up.
     await this.platform.hvacInstance.setHeatTemp(value as number);
-    await this.platform.hvacInstance.getStatus();
     this.platform.log.debug('Set Master Target Heating Temperature -> ', value);
   }
 
@@ -207,8 +209,9 @@ export class MasterControllerAccessory {
 
   async setCoolingThresholdTemperature(value: CharacteristicValue) {
     this.checkHvacComms();
+    // Note: no getStatus() here (see setHeatingThresholdTemperature) - it would clobber the
+    // value we just set with a stale cloud reading.
     await this.platform.hvacInstance.setCoolTemp(value as number);
-    await this.platform.hvacInstance.getStatus();
     this.platform.log.debug('Set Master Target Cooling Temperature -> ', value);
   }
 

@@ -266,10 +266,14 @@ describe('MasterControllerAccessory', () => {
   });
 
   describe('setHeatingThresholdTemperature', () => {
-    it('should call setHeatTemp and getStatus', async () => {
+    it('should call setHeatTemp', async () => {
       await accessory.setHeatingThresholdTemperature(22);
       expect(mockPlatform.hvacInstance.setHeatTemp).toHaveBeenCalledWith(22);
-      expect(mockPlatform.hvacInstance.getStatus).toHaveBeenCalled();
+    });
+
+    it('should not refresh status immediately (stale read would clobber the value just set)', async () => {
+      await accessory.setHeatingThresholdTemperature(22);
+      expect(mockPlatform.hvacInstance.getStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -282,10 +286,14 @@ describe('MasterControllerAccessory', () => {
   });
 
   describe('setCoolingThresholdTemperature', () => {
-    it('should call setCoolTemp and getStatus', async () => {
+    it('should call setCoolTemp', async () => {
       await accessory.setCoolingThresholdTemperature(26);
       expect(mockPlatform.hvacInstance.setCoolTemp).toHaveBeenCalledWith(26);
-      expect(mockPlatform.hvacInstance.getStatus).toHaveBeenCalled();
+    });
+
+    it('should not refresh status immediately (stale read would clobber the value just set)', async () => {
+      await accessory.setCoolingThresholdTemperature(26);
+      expect(mockPlatform.hvacInstance.getStatus).not.toHaveBeenCalled();
     });
   });
 
