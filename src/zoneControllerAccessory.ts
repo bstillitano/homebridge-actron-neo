@@ -1,5 +1,5 @@
 import { Service, PlatformAccessory, CharacteristicValue, HAPStatus } from 'homebridge';
-import { ClimateMode, CompressorMode } from './types';
+import { ClimateMode, CompressorMode, PowerState } from './types';
 import { ActronQuePlatform } from './platform';
 import { HvacZone } from './hvacZone';
 
@@ -237,12 +237,23 @@ export class ZoneControllerAccessory {
   }
 
   getActiveState(): CharacteristicValue {
+    // Zones follow the master unit: if the whole system is off, the zone is inactive
+    // regardless of its individual enabled flag. Otherwise it reflects its enabled state.
+    // Without this, turning the unit off leaves zone tiles showing active/cooling (#34).
+    if (this.platform.hvacInstance.powerState === PowerState.OFF) {
+      return this.platform.Characteristic.Active.INACTIVE;
+    }
     return this.zone.zoneEnabled
       ? this.platform.Characteristic.Active.ACTIVE
       : this.platform.Characteristic.Active.INACTIVE;
   }
 
   getCurrentHeaterCoolerState(): CharacteristicValue {
+    // If the zone isn't active (master off or zone disabled) it can't be heating/cooling.
+    if (this.getActiveState() === this.platform.Characteristic.Active.INACTIVE) {
+      return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+    }
+
     // Get compressor mode from master controller
     const compressorMode = this.platform.hvacInstance.compressorMode;
     let currentState: number;

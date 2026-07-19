@@ -1,5 +1,5 @@
 import { ZoneControllerAccessory } from './zoneControllerAccessory';
-import { ClimateMode, CompressorMode } from './types';
+import { ClimateMode, CompressorMode, PowerState } from './types';
 import { createMockAccessory, mockLogger } from './__mocks__/mockHomebridge';
 
 describe('ZoneControllerAccessory', () => {
@@ -34,6 +34,7 @@ describe('ZoneControllerAccessory', () => {
       compressorMode: CompressorMode;
       climateMode: ClimateMode;
       fanRunning: boolean;
+      powerState: PowerState;
     };
     softRefreshInterval: number;
     zonesAsHeaterCoolers: boolean;
@@ -79,7 +80,7 @@ describe('ZoneControllerAccessory', () => {
         Name: 'Name',
         On: 'On',
         Active: { ACTIVE: 1, INACTIVE: 0 },
-        CurrentHeaterCoolerState: { IDLE: 1, HEATING: 2, COOLING: 3 },
+        CurrentHeaterCoolerState: { INACTIVE: 0, IDLE: 1, HEATING: 2, COOLING: 3 },
         TargetHeaterCoolerState: { AUTO: 0, HEAT: 1, COOL: 2 },
         CurrentTemperature: 'CurrentTemperature',
         HeatingThresholdTemperature: 'HeatingThresholdTemperature',
@@ -106,6 +107,7 @@ describe('ZoneControllerAccessory', () => {
         compressorMode: CompressorMode.COOL,
         climateMode: ClimateMode.COOL,
         fanRunning: true,
+        powerState: PowerState.ON,
       },
       softRefreshInterval: 5000,
       zonesAsHeaterCoolers: false,
@@ -183,6 +185,13 @@ describe('ZoneControllerAccessory', () => {
         const result = accessory.getActiveState();
         expect(result).toBe(0); // INACTIVE
       });
+
+      it('should return INACTIVE when the master unit is off, even if the zone is enabled (#34)', () => {
+        mockZone.zoneEnabled = true;
+        mockPlatform.hvacInstance.powerState = PowerState.OFF;
+        const result = accessory.getActiveState();
+        expect(result).toBe(0); // INACTIVE - follows master
+      });
     });
 
     describe('setActiveState', () => {
@@ -231,6 +240,23 @@ describe('ZoneControllerAccessory', () => {
         mockPlatform.hvacInstance.fanRunning = true;
         const result = accessory.getCurrentHeaterCoolerState();
         expect(result).toBe(1); // IDLE
+      });
+
+      it('should return INACTIVE when the master unit is off (#34)', () => {
+        mockZone.zoneEnabled = true;
+        mockPlatform.hvacInstance.compressorMode = CompressorMode.COOL;
+        mockPlatform.hvacInstance.fanRunning = true;
+        mockPlatform.hvacInstance.powerState = PowerState.OFF;
+        const result = accessory.getCurrentHeaterCoolerState();
+        expect(result).toBe(0); // INACTIVE - not cooling when the unit is off
+      });
+
+      it('should return INACTIVE when the zone itself is disabled', () => {
+        mockZone.zoneEnabled = false;
+        mockPlatform.hvacInstance.compressorMode = CompressorMode.COOL;
+        mockPlatform.hvacInstance.fanRunning = true;
+        const result = accessory.getCurrentHeaterCoolerState();
+        expect(result).toBe(0); // INACTIVE
       });
     });
 
