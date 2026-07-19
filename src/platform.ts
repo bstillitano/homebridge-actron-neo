@@ -32,6 +32,7 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
   readonly hardRefreshInterval: number = 60000;
   readonly softRefreshInterval: number = 5000;
   readonly commandDebounceMs: number = 500;
+  readonly setpointDebounceMs: number = 1000;
   readonly stateSyncGraceMs: number = 90000;
   readonly maxCoolingTemp: number = 32;
   readonly minCoolingTemp: number = 20;
@@ -77,6 +78,10 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     if (config['commandDebounceMs'] !== undefined) {
       this.commandDebounceMs = config['commandDebounceMs'];
       this.log.debug('Command debounce window set to ms', this.commandDebounceMs);
+    }
+    if (config['setpointDebounceMs'] !== undefined) {
+      this.setpointDebounceMs = config['setpointDebounceMs'];
+      this.log.debug('Setpoint debounce window set to ms', this.setpointDebounceMs);
     }
     if (config['stateSyncGraceMs'] !== undefined) {
       this.stateSyncGraceMs = config['stateSyncGraceMs'];
@@ -136,7 +141,8 @@ export class ActronQuePlatform implements DynamicPlatformPlugin {
     try {
       // Instantiate an instance of HvacUnit and connect the actronQueApi
       this.hvacInstance = new HvacUnit(this.clientName, this.log, this.api.user.storagePath(),
-        this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers, this.commandDebounceMs, this.stateSyncGraceMs);
+        this.zonesFollowMaster, this.zonesPushMaster, this.zonesAsHeaterCoolers,
+        this.commandDebounceMs, this.stateSyncGraceMs, this.setpointDebounceMs);
       let hvacSerial = '';
       hvacSerial = await this.hvacInstance.actronQueApi(this.username, this.password, this.userProvidedSerialNo);
       // Make sure we have hvac master and zone data before adding devices

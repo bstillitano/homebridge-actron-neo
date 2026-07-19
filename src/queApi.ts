@@ -40,6 +40,7 @@ export default class QueApi {
   // Collapses bursts of same-target changes (slider drags, rapid toggles) into one send.
   private readonly debouncer: Debouncer;
   private readonly commandDebounceMs: number;
+  private readonly setpointDebounceMs: number;
 
   constructor(
     private readonly username: string,
@@ -49,12 +50,14 @@ export default class QueApi {
     private readonly hbUserStoragePath: string,
     actronSerial = '',
     commandDebounceMs = 500,
+    setpointDebounceMs = 1000,
   ) {
     this.apiClientId = '';
     this.actronSerial = actronSerial;
     this.commandDebounceMs = commandDebounceMs;
+    this.setpointDebounceMs = setpointDebounceMs;
     this.debouncer = new Debouncer(commandDebounceMs);
-    this.log.debug(`QueApi initialised with command debounce window of ${commandDebounceMs}ms`);
+    this.log.debug(`QueApi initialised with debounce windows: commands ${commandDebounceMs}ms, setpoints ${setpointDebounceMs}ms`);
 
     // check for existing client ID for given client name. If client name file does not exist then create one.
     // If client is new name then create a new unique ID.
@@ -501,6 +504,22 @@ export default class QueApi {
     }
   }
 
+  // Temperature setpoints come from continuous slider drags, which fire a flood of
+  // intermediate values, so they use their own (typically longer) debounce window to
+  // coalesce the whole drag. Everything else is a discrete tap and uses the shorter one.
+  private commandDelay(commandType: validApiCommands): number {
+    switch (commandType) {
+      case validApiCommands.COOL_SET_POINT:
+      case validApiCommands.HEAT_SET_POINT:
+      case validApiCommands.HEAT_COOL_SET_POINT:
+      case validApiCommands.ZONE_COOL_SET_POINT:
+      case validApiCommands.ZONE_HEAT_SET_POINT:
+        return this.setpointDebounceMs;
+      default:
+        return this.commandDebounceMs;
+    }
+  }
+
   // Builds the wire command. Evaluated at flush time, so zone commands snapshot the
   // fully-merged local enabledZones array.
   private buildCommandBody(commandType: validApiCommands, coolTemp: number, heatTemp: number, zoneIndex: number): { command: object } {
@@ -534,14 +553,15 @@ export default class QueApi {
     // Debounce/coalesce by target, then send through the serial queue. The returned
     // promise resolves with the eventual command result for every coalesced caller.
     const key = this.commandKey(commandType, zoneIndex);
+    const delay = this.commandDelay(commandType);
     if (this.debouncer.isPending(key)) {
       this.log.debug(`Coalescing ${commandType} into pending "${key}" command`);
     } else {
-      this.log.debug(`Queued ${commandType} under "${key}", sending in ~${this.commandDebounceMs}ms`);
+      this.log.debug(`Queued ${commandType} under "${key}", sending in ~${delay}ms`);
     }
     return this.debouncer.schedule(key, () =>
       this.enqueue(() => this.dispatchCommand(this.buildCommandBody(commandType, coolTemp, heatTemp, zoneIndex))),
-    );
+    delay);
   }
 
   // Performs the actual POST for an already-built command. Never throws: transport/parse

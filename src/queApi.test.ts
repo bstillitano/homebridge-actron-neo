@@ -240,8 +240,8 @@ describe('QueApi', () => {
       jest.useFakeTimers();
       // Every POST acks successfully.
       mockFetch.mockResolvedValue(createMockResponse(200, { type: 'ack' }));
-      // Fast debounce window for tests.
-      api = new QueApi('test@example.com', 'password123', 'test-client', mockLogger, '/test/storage', 'SERIAL123', 50);
+      // Fast debounce windows for tests (command + setpoint).
+      api = new QueApi('test@example.com', 'password123', 'test-client', mockLogger, '/test/storage', 'SERIAL123', 50, 50);
       // Only count Request constructions from here on (the constructor above builds none).
       MockRequest.mockClear();
     });
@@ -300,6 +300,26 @@ describe('QueApi', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
       // Power command was issued first, so it is sent first.
       expect(sentBody(0)['UserAirconSettings.isOn']).toBe(true);
+      expect(sentBody(1)['UserAirconSettings.TemperatureSetpoint_Cool_oC']).toBe(24);
+    });
+
+    it('uses separate debounce windows for setpoints and discrete commands', async () => {
+      // Command window 50ms, setpoint window 200ms.
+      api = new QueApi('test@example.com', 'password123', 'test-client', mockLogger, '/test/storage', 'SERIAL123', 50, 200);
+      MockRequest.mockClear();
+
+      const power = api.runCommand(validApiCommands.ON);
+      const temp = api.runCommand(validApiCommands.COOL_SET_POINT, 24, 0);
+
+      // After 50ms the discrete command has fired but the setpoint has not.
+      await jest.advanceTimersByTimeAsync(50);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(sentBody(0)['UserAirconSettings.isOn']).toBe(true);
+
+      // The setpoint fires once its longer window elapses.
+      await jest.advanceTimersByTimeAsync(150);
+      await Promise.all([power, temp]);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(sentBody(1)['UserAirconSettings.TemperatureSetpoint_Cool_oC']).toBe(24);
     });
 

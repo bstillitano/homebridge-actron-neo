@@ -68,6 +68,7 @@ If you are not using the Homebridge config UI, you can add the following to your
         "zonesAsHeaterCoolers": false,
         "refreshInterval": 60,
         "commandDebounceMs": 500,
+        "setpointDebounceMs": 1000,
         "stateSyncGraceMs": 90000,
         "debug": false,
         "deviceSerial": "",
@@ -83,7 +84,12 @@ If you are not using the Homebridge config UI, you can add the following to your
 
 When you make several changes in quick succession — dragging a temperature slider, toggling several zones on/off, or turning the unit on/off right after a zone change — the plugin waits briefly for you to finish and then sends a single, consolidated command. This prevents the changes from racing each other on the Neo cloud, which previously could leave only the last change applied or land a temperature somewhere between the start and target value.
 
-`commandDebounceMs` (default `500`) controls how long, in milliseconds, the plugin waits after your last change before sending. Lower values feel snappier; higher values coalesce more aggressively for very jittery bursts. Commands are also serialised, so they always apply to the unit in the order you made them.
+There are two separate debounce windows, because the two kinds of input behave differently:
+
+- `commandDebounceMs` (default `500`) applies to discrete actions: turning the unit on/off, changing mode or fan, and toggling zones. These are single taps, so a shorter window keeps them feeling responsive while still batching a rapid multi-zone toggle into one send.
+- `setpointDebounceMs` (default `1000`) applies to temperature setpoints (master and zone). A slider drag fires a flood of intermediate values, so a longer window collapses the whole drag into a single command that carries only the final value.
+
+Lower values feel snappier; higher values coalesce more aggressively. Commands are also serialised, so they always apply to the unit in the order you made them.
 
 ## State Sync Grace Window
 
