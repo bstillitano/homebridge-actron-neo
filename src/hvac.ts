@@ -43,13 +43,15 @@ export class HvacUnit {
     readonly zonesPushMaster = true,
     readonly zonesAsHeaterCoolers = false,
     private readonly commandDebounceMs = 500,
-    private readonly stateSyncGraceMs = 90000) {
+    private readonly stateSyncGraceMs = 90000,
+    private readonly setpointDebounceMs = 1000) {
     this.name = name;
   }
 
   async actronQueApi(username: string, password: string, serialNo = '') {
     this.type = 'actronNeo';
-    this.apiInterface = new QueApi(username, password, this.name, this.log, this.hbUserStoragePath, serialNo, this.commandDebounceMs);
+    this.apiInterface = new QueApi(username, password, this.name, this.log, this.hbUserStoragePath, serialNo,
+      this.commandDebounceMs, this.setpointDebounceMs);
     await this.apiInterface.initializer();
     if (this.apiInterface.actronSerial) {
       this.serialNo = this.apiInterface.actronSerial;

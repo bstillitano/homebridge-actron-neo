@@ -25,13 +25,15 @@ export class Debouncer {
 
   // Schedule (or reschedule) an action under `key`. Restarts the quiet window and
   // replaces any previously pending action for the key with this one (last write wins).
+  // An optional `delayMs` overrides the default window for this key (a key always uses a
+  // consistent command type, so the delay stays stable across reschedules).
   // Returns a promise shared by all callers scheduling under the key this window.
-  schedule<T>(key: string, action: () => Promise<T>): Promise<T> {
+  schedule<T>(key: string, action: () => Promise<T>, delayMs: number = this.delayMs): Promise<T> {
     const existing = this.entries.get(key);
     if (existing) {
       clearTimeout(existing.timer);
       existing.action = action as () => Promise<unknown>;
-      existing.timer = setTimeout(() => this.flush(key), this.delayMs);
+      existing.timer = setTimeout(() => this.flush(key), delayMs);
       return existing.promise as Promise<T>;
     }
 
@@ -41,7 +43,7 @@ export class Debouncer {
       resolve = res;
       reject = rej;
     });
-    const timer = setTimeout(() => this.flush(key), this.delayMs);
+    const timer = setTimeout(() => this.flush(key), delayMs);
     this.entries.set(key, { promise, resolve, reject, action: action as () => Promise<unknown>, timer });
     return promise as Promise<T>;
   }

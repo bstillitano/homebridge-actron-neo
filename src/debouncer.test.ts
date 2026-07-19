@@ -47,6 +47,20 @@ describe('Debouncer', () => {
     await expect(p3).resolves.toBe(3);
   });
 
+  it('honours a per-call delay override', async () => {
+    const debouncer = new Debouncer(500);
+    const action = jest.fn().mockResolvedValue('done');
+
+    const promise = debouncer.schedule('key', action, 200);
+
+    jest.advanceTimersByTime(150);
+    expect(action).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(50); // reaches the 200ms override, not the 500ms default
+    await expect(promise).resolves.toBe('done');
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps distinct keys independent', async () => {
     const debouncer = new Debouncer(500);
     const a = jest.fn().mockResolvedValue('a');

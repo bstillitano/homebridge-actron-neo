@@ -60,10 +60,17 @@
       },
       "commandDebounceMs": {
         "title": "Command Debounce Window (ms)",
-        "description": "How long to wait after your last change before sending it to the AC. Rapid changes (dragging a temperature slider, toggling several zones) are coalesced into a single command so they all apply. Lower feels snappier; higher coalesces more aggressively. Default 500.",
+        "description": "How long to wait after your last change before sending discrete commands (turning the unit on/off, changing mode or fan, toggling zones) to the AC. Rapid changes are coalesced into a single command so they all apply. Lower feels snappier; higher coalesces more aggressively (e.g. batching several quick zone toggles). Default 500.",
         "type": "integer",
         "required": false,
         "default": 500
+      },
+      "setpointDebounceMs": {
+        "title": "Setpoint Debounce Window (ms)",
+        "description": "Debounce window used specifically for temperature setpoints (master and zone). Dragging a slider fires many intermediate values, so this is usually set higher than the command window to collapse the whole drag into a single send with only the final value. Default 1000.",
+        "type": "integer",
+        "required": false,
+        "default": 1000
       },
       "stateSyncGraceMs": {
         "title": "State Sync Grace Window (ms)",
